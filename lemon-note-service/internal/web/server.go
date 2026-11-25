@@ -17,6 +17,8 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/model"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/pages"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/persist"
@@ -38,6 +40,8 @@ type Deps struct {
 	Pages    *pages.Service
 	Accounts *accounts.Service
 	Hub      *realtime.Hub
+	Files    *files.Service
+	Search   *search.Index
 	Box      *crypt.Box
 	Started  time.Time
 }
@@ -355,12 +359,15 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/api/auth/register", s.h(s.handleRegister))
 		r.Post("/api/auth/logout", s.h(s.handleLogout))
 		r.Get("/api/auth/me", s.h(s.handleMe))
+		r.Get("/api/files/{id}", s.h(s.handleDownload)) // 分享页用令牌读附件，不要求登录
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireUser)
 			s.routesMe(r)
 			s.routesSpaces(r)
 			s.routesPages(r)
+			s.routesSearch(r)
 			r.Get("/api/ws", s.handleWS)
+			r.Post("/api/files", s.h(s.handleUpload))
 			r.Group(func(r chi.Router) {
 				r.Use(s.requireAdmin)
 				s.routesAdmin(r)

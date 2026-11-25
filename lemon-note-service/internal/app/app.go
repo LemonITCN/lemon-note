@@ -21,6 +21,8 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/ids"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/pages"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/persist"
@@ -86,6 +88,8 @@ type Services struct {
 	Accounts *accounts.Service
 	Hub      *realtime.Hub
 	Box      *crypt.Box
+	Files    *files.Service
+	Search   *search.Index
 	Web      *web.Server
 }
 
@@ -255,8 +259,14 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 	set := settings.New(st)
 	svc := &Services{Inst: inst, Cat: cat, Settings: set, Auth: auth.New(st, set), Pages: pages.New(st, cat),
 		Accounts: accounts.New(st, cat), Hub: realtime.New(cat, st, a.Log), Box: box}
+	svc.Files = files.New(st, inst.Dir, inst.CacheDir)
+	ix, err := search.Open(ctx, inst.CacheDir, st, a.Log)
+	if err != nil {
+		return nil, fmt.Errorf("打开全文索引失败: %w", err)
+	}
+	svc.Search = ix
 	svc.Web = web.NewServer(web.Deps{Log: a.Log, Boot: a.Boot, Inst: inst, Store: st, Cat: cat, Auth: svc.Auth, Settings: set,
-		Pages: svc.Pages, Accounts: svc.Accounts, Hub: svc.Hub, Box: box, Started: time.Now()})
+		Pages: svc.Pages, Accounts: svc.Accounts, Hub: svc.Hub, Box: box, Files: svc.Files, Search: ix, Started: time.Now()})
 	for _, e := range extensions {
 		if err := e(a, svc); err != nil {
 			return nil, err
@@ -304,6 +314,9 @@ func (a *App) Stop(ctx context.Context) error {
 	if svc != nil {
 		for _, fn := range stopHooks {
 			fn(svc)
+		}
+		if svc.Search != nil {
+			svc.Search.Close()
 		}
 		err = svc.Inst.Close(context.Background())
 	}

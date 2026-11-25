@@ -380,7 +380,7 @@ func (s *Server) handleRevokeToken(w http.ResponseWriter, r *http.Request) error
 
 // handleUserDirectory 列出全部启用的用户（分享、提及时选人用）。
 func (s *Server) handleUserDirectory(w http.ResponseWriter, r *http.Request) error {
-	var out []map[string]any
+	out := []map[string]any{}
 	for _, u := range s.Cat.Users() {
 		if u.Status == model.UserActive {
 			out = append(out, map[string]any{"id": u.ID, "username": u.Username, "display_name": u.DisplayName, "avatar": u.Avatar})

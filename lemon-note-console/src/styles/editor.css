@@ -1,0 +1,91 @@
+/* 正文排版 */
+.ln-editor { outline: none; font-family: var(--font-content); font-size: var(--content-size); line-height: 1.65; color: var(--text); caret-color: var(--text); padding-bottom: 30vh; word-wrap: break-word; }
+.ln-editor > * + * { margin-top: 2px; }
+.ln-editor p { margin: 0; padding: 3px 2px; min-height: 1.65em; }
+.ln-editor h1, .ln-editor h2, .ln-editor h3 { font-weight: 650; letter-spacing: -.01em; line-height: 1.3; padding: 3px 2px; }
+.ln-editor h1 { font-size: 1.875em; margin: 1.1em 0 4px; }
+.ln-editor h2 { font-size: 1.5em; margin: 1em 0 2px; }
+.ln-editor h3 { font-size: 1.25em; margin: .9em 0 1px; }
+.ln-editor > :first-child { margin-top: 0 !important; }
+.ln-editor a { color: inherit; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+.ln-editor a:hover { text-decoration-color: currentColor; }
+.ln-editor code { font-family: var(--font-mono); font-size: .86em; background: var(--code-bg); color: var(--code-text); padding: .15em .35em; border-radius: 4px; }
+.ln-editor mark { border-radius: 3px; padding: 0 1px; color: inherit; }
+.ln-editor strong { font-weight: 650; }
+.ln-editor ul, .ln-editor ol { padding-left: 1.6em; margin: 0; }
+.ln-editor li { padding: 1px 0; }
+.ln-editor li > p { padding: 2px 2px; }
+.ln-editor ul[data-type="taskList"] { list-style: none; padding-left: .2em; }
+.ln-editor ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 8px; }
+.ln-editor ul[data-type="taskList"] li > label { margin-top: .42em; flex: none; user-select: none; }
+.ln-editor ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.ln-editor ul[data-type="taskList"] li[data-checked="true"] > div > p { color: var(--text-3); text-decoration: line-through; }
+.ln-editor ul[data-type="taskList"] input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.ln-editor blockquote { margin: 4px 0; padding: 2px 14px; border-left: 3px solid currentColor; }
+.ln-editor hr { border: 0; height: 1px; background: var(--border-strong); margin: 14px 2px; }
+.ln-editor hr.ProseMirror-selectednode { background: var(--accent); }
+.ln-editor pre { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.6; background: var(--bg-sunken); border-radius: var(--radius-m); padding: 14px 16px; margin: 6px 0; overflow-x: auto; tab-size: 2; }
+.ln-editor pre code { background: none; color: var(--text); padding: 0; font-size: inherit; }
+.ln-editor .has-bg { border-radius: var(--radius-s); padding-left: 6px; padding-right: 6px; }
+.ln-editor .is-empty::before, .ln-editor .is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--text-3); float: left; height: 0; pointer-events: none; }
+.ln-editor .ProseMirror-selectednode { outline: none; }
+.ln-editor .ln-comment { background: rgba(255, 212, 0, .14); border-bottom: 2px solid rgba(255, 212, 0, .6); }
+
+/* 表格 */
+.ln-editor table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 8px 0; overflow: hidden; }
+.ln-editor td, .ln-editor th { border: 1px solid var(--border-strong); padding: 6px 8px; vertical-align: top; position: relative; min-width: 60px; }
+.ln-editor th { background: var(--bg-soft); font-weight: 600; text-align: left; }
+.ln-editor td > p, .ln-editor th > p { padding: 0; }
+.ln-editor .tableWrapper { overflow-x: auto; }
+.ln-editor .selectedCell::after { content: ''; position: absolute; inset: 0; background: var(--accent-soft); pointer-events: none; }
+.ln-editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: var(--accent); pointer-events: none; }
+.ln-editor.resize-cursor { cursor: col-resize; }
+
+/* 标注框 */
+.ln-callout { display: flex; gap: 10px; padding: 14px 16px 14px 12px; border-radius: var(--radius-m); margin: 4px 0; }
+.ln-callout-icon { border: 0; background: none; padding: 2px; border-radius: 4px; height: fit-content; display: flex; }
+.ln-callout-icon:hover { background: var(--bg-hover); }
+.ln-callout-body { flex: 1; min-width: 0; }
+.ln-callout-body > div > p:first-child { padding-top: 0; }
+
+/* 折叠块 */
+.ln-toggle { display: flex; align-items: flex-start; gap: 2px; margin: 1px 0; }
+.ln-toggle-btn { width: 24px; height: 24px; margin-top: 3px; border: 0; background: none; color: var(--text-2); display: flex; align-items: center; justify-content: center; border-radius: 4px; flex: none; padding: 0; }
+.ln-toggle-btn:hover { background: var(--bg-hover); }
+.ln-toggle-content { flex: 1; min-width: 0; }
+.ln-toggle-title { padding: 3px 2px; min-height: 1.65em; }
+.ln-toggle.h1 .ln-toggle-title { font-size: 1.875em; font-weight: 650; line-height: 1.3; }
+.ln-toggle.h2 .ln-toggle-title { font-size: 1.5em; font-weight: 650; line-height: 1.3; }
+.ln-toggle.h3 .ln-toggle-title { font-size: 1.25em; font-weight: 650; line-height: 1.3; }
+.ln-toggle.h1 .ln-toggle-btn { margin-top: 12px; } .ln-toggle.h2 .ln-toggle-btn { margin-top: 8px; } .ln-toggle.h3 .ln-toggle-btn { margin-top: 5px; }
+.ln-toggle.closed .ln-toggle-body { display: none; }
+.ln-toggle-body:empty::before { content: ''; }
+
+/* 分栏 */
+.ln-columns { display: flex; gap: 28px; margin: 4px 0; }
+.ln-column { min-width: 0; }
+
+/* 同步块 */
+.ln-synced { border-radius: var(--radius-m); box-shadow: 0 0 0 1px transparent; margin: 2px -6px; padding: 0 6px; }
+.ln-synced:hover { box-shadow: 0 0 0 2px var(--c-orange); }
+
+/* 选中原子块 */
+.ln-editor [data-node-view-wrapper].ProseMirror-selectednode { border-radius: var(--radius-m); }
+
+/* 代码高亮（lowlight / highlight.js 类名） */
+.hljs-comment, .hljs-quote { color: var(--text-3); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-type { color: #b5408a; }
+.hljs-string, .hljs-attr, .hljs-symbol, .hljs-bullet, .hljs-addition { color: #2f8a5b; }
+.hljs-number, .hljs-meta { color: #c05a17; }
+.hljs-title, .hljs-section, .hljs-name, .hljs-title.function_ { color: #2f6fde; }
+.hljs-built_in, .hljs-variable, .hljs-template-variable { color: #7b5bd6; }
+.hljs-deletion { color: var(--danger); }
+html[data-theme="dark"] .hljs-keyword, html[data-theme="dark"] .hljs-selector-tag, html[data-theme="dark"] .hljs-literal, html[data-theme="dark"] .hljs-type { color: #e480c2; }
+html[data-theme="dark"] .hljs-string, html[data-theme="dark"] .hljs-attr { color: #7ccf9f; }
+html[data-theme="dark"] .hljs-number { color: #f0a46b; }
+html[data-theme="dark"] .hljs-title, html[data-theme="dark"] .hljs-section, html[data-theme="dark"] .hljs-title.function_ { color: #7aa7f0; }
+html[data-theme="dark"] .hljs-built_in, html[data-theme="dark"] .hljs-variable { color: #b39af0; }
+
+/* 拖拽把手 */
+.ln-drag { transition: opacity .1s; }
+.ProseMirror-dropcursor { pointer-events: none; }

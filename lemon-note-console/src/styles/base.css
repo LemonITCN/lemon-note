@@ -1,0 +1,36 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font-family: var(--font-ui);
+  font-size: var(--ui-size);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+::selection { background: var(--accent-soft); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input::placeholder, textarea::placeholder { color: var(--text-3); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--text-3); }
+::-webkit-scrollbar-track { background: transparent; }
+.ln-muted { color: var(--text-2); }
+.ln-faint { color: var(--text-3); }
+.ln-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ln-row { display: flex; align-items: center; gap: 8px; }
+.ln-spacer { flex: 1; }
+.ln-kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border-strong); color: var(--text-2); }
+
+/* 命名颜色（文字 / 背景），编辑器与界面共用 */
+.c-gray { color: var(--c-gray); } .c-brown { color: var(--c-brown); } .c-orange { color: var(--c-orange); }
+.c-yellow { color: var(--c-yellow); } .c-green { color: var(--c-green); } .c-blue { color: var(--c-blue); }
+.c-purple { color: var(--c-purple); } .c-pink { color: var(--c-pink); } .c-red { color: var(--c-red); }
+.cb-gray { background: var(--cb-gray); } .cb-brown { background: var(--cb-brown); } .cb-orange { background: var(--cb-orange); }
+.cb-yellow { background: var(--cb-yellow); } .cb-green { background: var(--cb-green); } .cb-blue { background: var(--cb-blue); }
+.cb-purple { background: var(--cb-purple); } .cb-pink { background: var(--cb-pink); } .cb-red { background: var(--cb-red); }

@@ -1,0 +1,91 @@
+/* 设计令牌：主题通过 html[data-theme] 与 html[data-accent] 切换 */
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --font-content: var(--font-ui);
+  --radius-xs: 3px;
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 10px;
+  --rail-w: 52px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ui-size: 14px;
+  --content-size: 16px;
+  --row-h: 28px;
+}
+html[data-density="compact"] { --ui-size: 13px; --content-size: 15px; --row-h: 26px; }
+html[data-density="comfortable"] { --ui-size: 14.5px; --content-size: 17px; --row-h: 30px; }
+
+html, html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-elev: #ffffff;
+  --bg-soft: #f8f8f7;
+  --bg-sunken: #f2f1ee;
+  --bg-hover: rgba(55, 53, 47, .06);
+  --bg-active: rgba(55, 53, 47, .1);
+  --text: #2b2b2a;
+  --text-2: #64635f;
+  --text-3: #9a9994;
+  --text-inverse: #ffffff;
+  --border: rgba(55, 53, 47, .1);
+  --border-strong: rgba(55, 53, 47, .18);
+  --overlay: rgba(15, 15, 15, .38);
+  --shadow-pop: 0 0 0 1px rgba(15, 15, 15, .05), 0 3px 6px rgba(15, 15, 15, .08), 0 9px 24px rgba(15, 15, 15, .14);
+  --shadow-soft: 0 1px 2px rgba(15, 15, 15, .06);
+  --danger: #d44c47;
+  --danger-bg: rgba(212, 76, 71, .1);
+  --success: #2f8a5b;
+  --warning: #c27c0e;
+  --code-bg: rgba(135, 131, 120, .14);
+  --code-text: #c4554d;
+
+  --c-gray: #787774; --c-brown: #9f6b53; --c-orange: #d9730d; --c-yellow: #cb912f; --c-green: #448361;
+  --c-blue: #337ea9; --c-purple: #9065b0; --c-pink: #c14c8a; --c-red: #d44c47;
+  --cb-gray: #f1f1ef; --cb-brown: #f4eeee; --cb-orange: #fbecdd; --cb-yellow: #fbf3db; --cb-green: #edf3ec;
+  --cb-blue: #e7f3f8; --cb-purple: #f4f0f7; --cb-pink: #f9eef3; --cb-red: #fdebec;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #191919;
+  --bg-elev: #252525;
+  --bg-soft: #202020;
+  --bg-sunken: #161616;
+  --bg-hover: rgba(255, 255, 255, .055);
+  --bg-active: rgba(255, 255, 255, .09);
+  --text: #e6e6e3;
+  --text-2: #a3a29e;
+  --text-3: #73726e;
+  --text-inverse: #191919;
+  --border: rgba(255, 255, 255, .09);
+  --border-strong: rgba(255, 255, 255, .16);
+  --overlay: rgba(0, 0, 0, .55);
+  --shadow-pop: 0 0 0 1px rgba(255, 255, 255, .06), 0 3px 6px rgba(0, 0, 0, .3), 0 9px 24px rgba(0, 0, 0, .45);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, .3);
+  --danger: #e66a64;
+  --danger-bg: rgba(230, 106, 100, .14);
+  --success: #4fb37f;
+  --warning: #e0a53a;
+  --code-bg: rgba(135, 131, 120, .2);
+  --code-text: #e8837b;
+
+  --c-gray: #9b9b9b; --c-brown: #ba856f; --c-orange: #c77d48; --c-yellow: #ca9849; --c-green: #529e72;
+  --c-blue: #5e87c9; --c-purple: #9d68d3; --c-pink: #d15796; --c-red: #df5452;
+  --cb-gray: #2f2f2f; --cb-brown: #4a3229; --cb-orange: #5c3b23; --cb-yellow: #56452f; --cb-green: #243d30;
+  --cb-blue: #143a4e; --cb-purple: #3c2d49; --cb-pink: #4e2c3c; --cb-red: #522e2a;
+}
+
+/* 强调色 */
+html, html[data-accent="blue"] { --accent: #2f6fde; --accent-hover: #2a62c4; --accent-soft: rgba(47, 111, 222, .12); }
+html[data-accent="green"] { --accent: #2f8a5b; --accent-hover: #287a50; --accent-soft: rgba(47, 138, 91, .13); }
+html[data-accent="purple"] { --accent: #7b5bd6; --accent-hover: #6c4ec4; --accent-soft: rgba(123, 91, 214, .13); }
+html[data-accent="orange"] { --accent: #d9730d; --accent-hover: #c2660b; --accent-soft: rgba(217, 115, 13, .13); }
+html[data-accent="pink"] { --accent: #c94f8b; --accent-hover: #b4457c; --accent-soft: rgba(201, 79, 139, .13); }
+html[data-accent="lemon"] { --accent: #b59a12; --accent-hover: #9f870f; --accent-soft: rgba(181, 154, 18, .15); }
+html[data-accent="graphite"] { --accent: #4a4a48; --accent-hover: #3a3a38; --accent-soft: rgba(74, 74, 72, .13); }
+html[data-theme="dark"][data-accent="graphite"] { --accent: #c9c9c5; --accent-hover: #e0e0dc; --accent-soft: rgba(201, 201, 197, .14); }
+
+html[data-font="serif"] { --font-content: var(--font-serif); }
+html[data-font="mono"] { --font-content: var(--font-mono); }

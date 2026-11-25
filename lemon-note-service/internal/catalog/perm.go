@@ -103,7 +103,7 @@ func (c *Catalog) SharedWithUser(userID string) []PageMeta {
 	defer c.mu.RUnlock()
 	now := time.Now().UnixMilli()
 	seen := map[string]bool{}
-	var out []PageMeta
+	out := []PageMeta{}
 	for _, s := range c.shares {
 		if s.Kind != model.ShareUser || model.Deref(s.UserID) != userID || !shareActive(s, now) || seen[s.PageID] {
 			continue

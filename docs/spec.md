@@ -169,38 +169,47 @@ sessions、oauth_clients、oauth_codes、oauth_refresh_tokens、login_attempts�
 
 ### 5.2 节点目录（ProseMirror schema，前后端与 Markdown 转换器一致）
 
-顶层块（都带 `attrs.id`，可带 `attrs.color`：文字色或背景色名）：
+节点名与属性名以本表为准（与 TipTap 默认命名尽量一致）。所有块级节点都可带 `attrs.id`（顶层块必有）；文字类块可带 `attrs.color`（文字色名或 `*_background` 背景色名）与 `attrs.textAlign`（left / center / right）。
 
-| 节点 | 属性 | 内容 |
-|---|---|---|
-| paragraph | | inline* |
-| heading | level 1-3 | inline* |
-| bulletList / orderedList(start) / taskList | | listItem+ / taskItem+ |
-| listItem / taskItem(checked) | | paragraph block* |
-| toggle | open, level 0-3（0 为普通折叠，1-3 为折叠标题） | toggleTitle toggleBody |
-| quote | | block+ |
-| callout | icon, color | block+ |
-| codeBlock | language, wrap | text* |
-| divider | | |
-| image | fileId 或 src, alt, caption, width, align | |
-| file / video / audio | fileId 或 src, name, size, mime | |
-| bookmark | url, title, description, image | |
-| embed | url, height | |
-| table | headerRow, headerColumn | tableRow+ > tableCell/tableHeader > paragraph+ |
-| columns | | column+ (width) > block+ |
-| mathBlock | latex | |
-| mermaid | code | |
-| graphviz | code, engine | |
-| mindmap | data（树 + 布局 + 主题） | |
-| whiteboard | data（Excalidraw 元素） | |
-| chart | data（静态 ECharts 配置或绑定数据库视图） | |
-| childPage | pageId | |
-| childDatabase | pageId, viewId | |
-| linkToPage | pageId | |
-| syncedBlock | sourceId（为空表示原件） | block* |
-| tableOfContents / breadcrumb | | |
+| 节点 | 属性 | 内容 | 增强 Markdown |
+|---|---|---|---|
+| paragraph | color, textAlign | inline* | 普通段落；空段落写 `<empty-block/>` |
+| heading | level 1-3 | inline* | `#` / `##` / `###` |
+| bulletList | | listItem+ | `- ` |
+| orderedList | start | listItem+ | `1. ` |
+| listItem | | paragraph block* | 子块按列表标记宽度缩进 |
+| taskList | | taskItem+ | |
+| taskItem | checked | paragraph block* | `- [ ] ` / `- [x] ` |
+| toggle | open, level 0-3 | toggleTitle toggleBody | `<details>` `<summary>…</summary>` … `</details>`；折叠标题 `<details heading="2">`；展开 `open` |
+| toggleTitle | | inline* | |
+| toggleBody | | block* | |
+| blockquote | | block+ | `> ` |
+| callout | icon, color | block+ | `<callout icon="…" color="…">` … `</callout>` |
+| codeBlock | language | text* | 围栏代码块 |
+| horizontalRule | | | `---` |
+| image | src, alt, title, width, align | | `![alt](src "title")` 后接 `{width=480 align="center"}` |
+| fileBlock | src, name, size, mime | | `<file src="…" name="…"/>` |
+| video / audio | src, title | | `<video src="…"/>` / `<audio src="…"/>` |
+| bookmark | url, title, description, image | | `<bookmark url="…"/>` |
+| embed | url, height | | `<embed url="…" height="400"/>` |
+| table | | tableRow+ | GFM 表格（第一行为表头，单元格内换行写 `<br>`） |
+| tableRow | | (tableCell \| tableHeader)+ | |
+| tableCell / tableHeader | colspan, rowspan, colwidth | paragraph+ | |
+| columns | | column+ | `<columns>` `<column width="0.5">` … `</column>` … `</columns>` |
+| column | width | block+ | |
+| mathBlock | latex | | `$$` 换行 公式 换行 `$$` |
+| mermaid | code | | 围栏语言 `mermaid` |
+| graphviz | code, engine | | 围栏语言 `dot`（非 dot 引擎写 ` ```dot engine=neato`） |
+| mindmap | data | | 围栏语言 `mindmap`，缩进列表，第一项为中心主题 |
+| whiteboard | data, title | | `<whiteboard id="<块id>" title="…"/>` |
+| chart | data | | 围栏语言 `chart`，内容为 JSON |
+| childPage | pageId | | `<page id="…">标题</page>` |
+| childDatabase | pageId, viewId | | `<database id="…" view="…">标题</database>` |
+| linkToPage | pageId | | `<link-to-page id="…">标题</link-to-page>` |
+| syncedBlock | sourceId（原件为空） | block* | 原件 `<synced-block id="<块id>">` … `</synced-block>`；引用 `<synced-block source="…"/>` |
+| tableOfContents / breadcrumb | | | `<toc/>` / `<breadcrumb/>` |
 
-行内：文字标记 bold、italic、underline、strike、code、link(href)、textColor(color)、highlight(color)、comment(threadId)；行内节点 mention(kind=page/user/date, id, date, endDate)、mathInline(latex)、hardBreak。
+行内：文字标记 bold `**`、italic `*`、underline `<u>`、strike `~~`、code `` ` ``、link `[](href)`、textColor `<span color="red">`、highlight `<mark color="yellow">`、subscript `<sub>`、superscript `<sup>`、comment（threadId，Markdown 里不显示）；行内节点 mention（kind=page/user/date，id，date，endDate）写作 `<mention-page id="…">标题</mention-page>`、`<mention-user id="…">名字</mention-user>`、`<mention-date date="2026-11-25" end="…"/>`；mathInline（latex）写作 `$…$`；hardBreak 写作 `<br>`。
 
 ### 5.3 实时编辑协议
 

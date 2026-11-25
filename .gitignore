@@ -9,3 +9,4 @@ lemon-note-service/gui/build/bin/
 *.local
 .env
 .env.*
+public/excalidraw-assets/
