@@ -159,7 +159,7 @@ lemon-note/
 
 ### 4.2 不进日志的表（本机）
 
-sessions、oauth_clients、oauth_codes、oauth_refresh_tokens、login_attempts、recent_pages、import_jobs、_outbox、meta。
+sessions、oauth_clients、oauth_codes、oauth_tokens、login_attempts、recent_pages、import_jobs、_outbox、meta。
 
 ## 5. 块模型
 
@@ -262,6 +262,11 @@ sessions、oauth_clients、oauth_codes、oauth_refresh_tokens、login_attempts�
 - 空间角色：owner > admin > editor > commenter > viewer。个人空间只有所有者。
 - 页面分享给用户：授予该页面及其子孙页面的角色。实际角色 = max(空间角色, 自己及祖先页面上的分享角色)。
 - 公开链接：令牌只读访问该页面（可含子页面），可设口令与有效期，默认禁止搜索引擎收录。公开页面里指向未公开页面的提及、链接、子页面一律显示为「无权访问」，不泄露标题。
+  - 分享（用户与公开链接）只有对页面有完全访问（admin）的人能改；被分享的人可以自己退出。每页最多一个有效的公开链接，可重置令牌（旧链接立即失效）。
+  - 页面外壳 `/share/<令牌>[/<页面 id>]`（`Referrer-Policy: no-referrer`，默认 `X-Robots-Tag: noindex`）；匿名接口统一在 `/api/public/<令牌>/` 下：`GET /`（站点名、是否要口令、范围内页面树）、`POST /unlock`、`GET /pages/{id}`、`GET /databases/{id}`、`POST /databases/{id}/query`（只按视图查询，不接受临时条件）、`POST /charts/query`、`GET /files/{id}`。
+  - 范围 = 分享的页面（含子页面时加子孙）+ 范围内页面里的内嵌数据库及其行。数据库里关联到范围外数据库的关联、经由它的汇总、引用了这些属性的公式整列去掉；评论标记去掉。
+  - 口令用 argon2id 存哈希；解锁凭据是用实例密钥加密的 Cookie（路径限定在该令牌的接口下、12 小时、口令改了即失效）；解锁按 IP + 链接限流。管理员关闭「允许公开链接」后全部公开接口立即返回不存在。
+- 收件箱（notifications）：页面分享给我、评论线程有新回复、正文里新 @ 到我时写一条；只给能看到该页面的人发，不发给自己；`GET /api/notifications`、`POST /api/notifications/read`，新通知经实时连接推送。
 - 智能体和 MCP 以用户身份行事，权限检查与界面完全相同；令牌可再收窄到只读或指定空间。
 - 所有查询在数据层强制带权限过滤，权限判断集中在一个包里并有隔离测试。
 
@@ -376,6 +381,9 @@ sessions、oauth_clients、oauth_codes、oauth_refresh_tokens、login_attempts�
 
 - 端点 `/mcp`，Streamable HTTP 传输（官方 Go SDK）。
 - 认证：个人访问令牌（`Authorization: Bearer ln_pat_...`），或 OAuth 2.1（授权码 + PKCE + 动态客户端注册，授权页让用户选择只读 / 读写与可访问的空间）。
+  - 元数据：`/.well-known/oauth-protected-resource`（RFC 9728，未授权时 `WWW-Authenticate` 带 resource_metadata）、`/.well-known/oauth-authorization-server`（RFC 8414）；端点 `/oauth/register`、`/oauth/authorize`（前端确认页，要登录）、`/oauth/token`、`/oauth/revoke`。
+  - 只支持公开客户端与 S256；回调地址只允许 https、本机回环 http（按 RFC 8252 忽略端口）和桌面应用自定义协议。授权码 10 分钟一次性，重放即作废已发出的令牌；访问令牌 `ln_oat_` 1 小时；刷新令牌 `ln_ort_` 60 天、每次刷新轮换，旧的被重用整条链作废。令牌只存哈希。
+  - 这些都是本机表（不进日志）：换机器恢复后客户端重新授权。用户在「设置 → 访问令牌 → 已授权的应用」里撤销。
 - 工具与 §9.5 通用工具完全一致，带 readOnlyHint / destructiveHint 标注。
 
 ## 10. 备份
