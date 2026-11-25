@@ -3,6 +3,8 @@ package lnmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -51,7 +53,7 @@ func (c *conv) convBlock(n ast.Node) []piece {
 	case *ast.FencedCodeBlock:
 		return nodesPiece(c.convFence(v))
 	case *ast.CodeBlock:
-		return nodesPiece(codeNode("", c.linesText(v)))
+		return nodesPiece(codeNode("", strings.TrimSuffix(c.linesText(v), "\n")))
 	case *ast.Blockquote:
 		return nodesPiece(Node{Type: tBlockquote, Content: ensurePlus(c.convChildren(v))})
 	case *ast.List:
@@ -106,7 +108,12 @@ func (c *conv) convFence(v *ast.FencedCodeBlock) Node {
 	if v.Info != nil {
 		info = strings.TrimSpace(resolveText(v.Info.Segment.Value(c.src)))
 	}
-	content := strings.TrimSuffix(c.linesText(v), "\n")
+	return fenceNode(info, strings.TrimSuffix(c.linesText(v), "\n"))
+}
+
+// fenceNode 按围栏语言把内容解释成节点：mermaid、dot/graphviz、mindmap、chart、math 是专用块，
+// 其余是代码块。渲染代码块时也用它，保证「语言恰好是这些名字的代码块」渲染结果与重新解析后一致。
+func fenceNode(info, content string) Node {
 	fields := strings.Fields(info)
 	lang := ""
 	if len(fields) > 0 {
@@ -126,14 +133,12 @@ func (c *conv) convFence(v *ast.FencedCodeBlock) Node {
 	case "mindmap":
 		return Node{Type: tMindmap, Attrs: map[string]any{"data": parseMindmap(content)}}
 	case "chart":
+		// 内容必须恰好是一个 JSON 值，否则降级成普通代码块，不丢内容
 		dec := json.NewDecoder(strings.NewReader(content))
 		dec.UseNumber()
-		var data any
-		if err := dec.Decode(&data); err == nil && !dec.More() {
-			var extra any
-			if dec.Decode(&extra) != nil {
-				return Node{Type: tChart, Attrs: map[string]any{"data": data}}
-			}
+		var data, extra any
+		if err := dec.Decode(&data); err == nil && errors.Is(dec.Decode(&extra), io.EOF) {
+			return Node{Type: tChart, Attrs: map[string]any{"data": data}}
 		}
 		return codeNode(info, content)
 	case "math":

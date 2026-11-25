@@ -54,7 +54,11 @@ func (r *renderer) block(n Node) string {
 		open := newTag("callout").attr("icon", attrStr(n, "icon")).attr("color", attrStr(n, "color")).open()
 		return open + "\n" + r.blocks(childBlocksPlus(n)) + "\n</callout>"
 	case tCodeBlock:
-		return fenced(sanitizeInfo(attrStr(n, "language")), codeText(n))
+		info, content := sanitizeInfo(attrStr(n, "language")), codeText(n)
+		if alt := fenceNode(info, content); alt.Type != tCodeBlock {
+			return r.block(alt)
+		}
+		return fenced(info, content)
 	case tHorizontalRule:
 		return "---"
 	case tImage:
@@ -177,10 +181,31 @@ func fenced(info, content string) string {
 		content = ""
 	}
 	f := fenceFor(content)
+	info = escapeInfo(info)
 	if content == "" {
 		return f + info + "\n" + f
 	}
 	return f + info + "\n" + content + "\n" + f
+}
+
+// escapeInfo 转义围栏信息串：信息串里的反斜杠转义与实体引用会被解析，需要原样保留。
+func escapeInfo(s string) string {
+	if !strings.ContainsAny(s, "\\&") {
+		return s
+	}
+	rs := []rune(s)
+	var b strings.Builder
+	for i, r := range rs {
+		next := rune(-1)
+		if i+1 < len(rs) {
+			next = rs[i+1]
+		}
+		if (r == '\\' && (next == -1 || (next < 0x80 && isASCIIPunct(byte(next))))) || (r == '&' && entityLike(rs[i:])) {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 func mathBlock(latex string) string {

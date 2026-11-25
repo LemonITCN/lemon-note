@@ -20,6 +20,7 @@ import (
 
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/accounts"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/agent"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/dbs"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/auth"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
@@ -97,6 +98,7 @@ type Services struct {
 	Files    *files.Service
 	Search   *search.Index
 	Tools    *tools.Services
+	DBs      *dbs.Service
 	Agent    *agent.Service
 	Web      *web.Server
 }
@@ -282,7 +284,9 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 	}
 	svc.Web = web.NewServer(web.Deps{Log: a.Log, Boot: a.Boot, Inst: inst, Store: st, Cat: cat, Auth: svc.Auth, Settings: set,
 		Pages: svc.Pages, Accounts: svc.Accounts, Hub: svc.Hub, Box: box, Files: svc.Files, Search: ix, Started: time.Now()})
-	svc.Tools = &tools.Services{Store: st, Cat: cat, Pages: svc.Pages, Search: ix, Files: svc.Files, Settings: set, Box: box, Log: a.Log}
+	svc.DBs = dbs.New(st, cat, svc.Pages)
+	svc.Tools = &tools.Services{Store: st, Cat: cat, Pages: svc.Pages, Search: ix, Files: svc.Files, Settings: set, Box: box, Log: a.Log, DB: svc.DBs}
+	svc.Web.AddMount(svc.DBs.Mount)
 	svc.Agent = agent.New(st, cat, svc.Pages, set, box, svc.Hub, a.Log, svc.Tools)
 	svc.Web.AddMount(svc.Agent.Mount)
 	svc.Web.MCP = mcpserver.Handler(svc.Tools, svc.Web.BearerAuth, func(r *http.Request) string { return a.publicBase(r) + "/.well-known/oauth-protected-resource" })

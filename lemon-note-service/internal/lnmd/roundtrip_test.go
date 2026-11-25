@@ -487,3 +487,57 @@ func TestEmptyPage(t *testing.T) {
 		t.Fatalf("空页面 Reconcile 应为空：%v %s", err, js(out))
 	}
 }
+
+// TestArbitraryMarkdownFixpoint 随机拼接大模型可能写出的各种片段（含不规范、不配对的标签），
+// 断言：解析不会崩溃；解析一次后的结果渲染再解析，块数与逐块文本都不再变化。
+func TestArbitraryMarkdownFixpoint(t *testing.T) {
+	rng := rand.New(rand.NewSource(99))
+	frags := []string{"文字", "**粗**", "*斜*", "`码`", "[链](http://a.b)", "![图](x.png)", "<u>下</u>", "<br>", "$x$", "$5", "\n", "\n\n",
+		"- ", "1. ", "- [ ] ", "> ", "# ", "## ", "  ", "    ", "```", "```go\n", "~~~", "$$", "---", "| a | b |\n|---|---|\n| 1 | 2 |",
+		"<callout icon=\"x\">", "</callout>", "<details>", "<summary>", "</summary>", "</details>", "<columns>", "<column>", "</column>", "</columns>",
+		"<page id=\"p1\">", "</page>", "<toc/>", "<empty-block/>", "<synced-block id=\"s\">", "</synced-block>", "<whiteboard id=\"w\"/>",
+		"<mention-page id=\"p1\"/>", "<span color=\"red\">", "</span>", "{color=\"red\"}", "{width=3}", "<div>", "\\", "*", "_", "|", "：", "“引”",
+		"\t", "<video src=\"v\">", "</video>", "```mindmap\n- 根\n  - 叶\n```", "```chart\n{\"a\":1}\n```", "<!-- c -->", "&amp;", "&#36;",
+		"\n- a\n  - b\n", "1) ", "<summary>T</summary>", "[x](u)", "~~删~~", "<mention-user id=\"u1\">名</mention-user>", "<file src=\"f\" name=\"n\"/>",
+		"   ", "\n    code\n", "* ", "+ ", "***", "___", "<sub>", "</sub>", "$$x$$", "\\$", "`", "``", "<br/>", "===", "\n===\n", "<", ">", "&",
+		"<a href=\"u\">", "</a>", "\n> > ", "<details heading=\"2\" open>", "<link-to-page id=\"x\"/>", "<bookmark url=\"u\"/>", "\n1. a\n\n2. b\n",
+		"- [x] ", "<synced-block source=\"s\"/>", "<embed url=\"e\" height=\"3\"/>", "\u3000", "💡", "<mark>", "</mark>", "**", "~~"}
+	for iter := 0; iter < 3000; iter++ {
+		var sb strings.Builder
+		for k := rng.Intn(25) + 1; k > 0; k-- {
+			sb.WriteString(frags[rng.Intn(len(frags))])
+		}
+		md := sb.String()
+		bs1 := mustParse(t, md)
+		noPseudo(t, md, bs1)
+		md1 := Render(bs1, testOpts)
+		bs2 := mustParse(t, md1)
+		if len(bs1) != len(bs2) {
+			t.Fatalf("%d: 块数 %d → %d\n--- 输入:\n%s\n--- 第一次渲染:\n%s\n--- 第二次解析:\n%s", iter, len(bs1), len(bs2), md, md1, js(bs2))
+		}
+		for i := range bs1 {
+			a, b := RenderBlock(bs1[i], testOpts), RenderBlock(bs2[i], testOpts)
+			if a != b {
+				t.Fatalf("%d: 第 %d 块不稳定\n--- 输入:\n%s\n--- 第一次:\n%s\n--- 第二次:\n%s", iter, i, md, a, b)
+			}
+		}
+	}
+}
+
+// TestConcurrentUse 解析器全局共享，并发调用必须安全（配合 -race 运行）。
+func TestConcurrentUse(t *testing.T) {
+	page := bigPage(200)
+	want := Render(page, testOpts)
+	done := make(chan string, 8)
+	for g := 0; g < 8; g++ {
+		go func() {
+			bs, _ := Parse(want)
+			done <- Render(bs, testOpts)
+		}()
+	}
+	for g := 0; g < 8; g++ {
+		if got := <-done; got != want {
+			t.Fatal("并发解析结果不一致")
+		}
+	}
+}

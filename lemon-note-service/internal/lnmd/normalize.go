@@ -62,6 +62,7 @@ func normalize(md string) *normResult {
 	inFence := false
 	var fenceCh byte
 	fenceN := 0
+	listCtx := false
 	for i := 0; i < len(src); i++ {
 		line := src[i]
 		if inFence {
@@ -72,6 +73,22 @@ func normalize(md string) *normResult {
 			continue
 		}
 		prefix, cont, rest := splitPrefix(line)
+		// 列表后紧跟一行顶格文字时，CommonMark 会把它当成列表项的惰性续行；大模型这样写几乎
+		// 都是想另起一段，所以补一个空行。本包自己的渲染结果不会出现这种写法。
+		if blank := strings.Trim(line, " \t") == ""; !blank {
+			trimmed := strings.TrimLeft(prefix, " \t")
+			switch {
+			case prefix == "":
+				if listCtx {
+					nz.emit("", true, -1, false)
+				}
+				listCtx = false
+			case trimmed != "" && trimmed[0] != '>':
+				listCtx = true
+			case trimmed != "":
+				listCtx = false
+			}
+		}
 		if ch, n, ok := fenceOpens(rest); ok {
 			inFence, fenceCh, fenceN = true, ch, n
 			nz.emit(line, false, -1, false)
@@ -137,8 +154,9 @@ func splitPrefix(line string) (prefix, cont, rest string) {
 		}
 		if ml := listMarkerAt(line, j); ml > 0 {
 			k := j + ml
-			sp := 0
-			for k+sp < len(line) && line[k+sp] == ' ' {
+			sp, hasTab := 0, false
+			for k+sp < len(line) && (line[k+sp] == ' ' || line[k+sp] == '\t') {
+				hasTab = hasTab || line[k+sp] == '\t'
 				sp++
 			}
 			if k+sp >= len(line) {
@@ -152,11 +170,12 @@ func splitPrefix(line string) (prefix, cont, rest string) {
 				i = j
 				break
 			}
-			if sp > 4 {
-				sp = 1
+			width := sp
+			if width > 4 || hasTab {
+				width = 1
 			}
 			cb.WriteString(line[i:j])
-			cb.WriteString(strings.Repeat(" ", ml+sp))
+			cb.WriteString(strings.Repeat(" ", ml+width))
 			i = k + sp
 			if m := taskBoxAt(line, i); m > 0 {
 				i += m

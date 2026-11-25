@@ -300,6 +300,9 @@ func (env *Env) DefaultSpace() string {
 	return sp[0].ID
 }
 
+// BeforeWriteSafe 写页面之前的检查点（给其他包里的工具用）。
+func (env *Env) BeforeWriteSafe(pageID string) error { return env.beforeWrite(pageID) }
+
 func (env *Env) beforeWrite(pageID string) error {
 	if env.BeforeWrite != nil {
 		return env.BeforeWrite(pageID)

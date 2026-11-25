@@ -6,8 +6,9 @@ package lnmd
 //  2. 文本完全相同但位置变了的块（移动）同样原样返回原节点；
 //  3. 白板、同步块原件在 Markdown 里写明了 id，与原块 id 相同即认领该原块（白板带回原 data），
 //     认不出的 id 清空交给调用方分配；
-//  4. 两段对齐之间的缺口里，变化的新块按位置继承原块 id（思维导图同时按文本路径继承节点 id、
-//     样式、备注与布局主题）；多出来的新块 id 留空，少了的原块不再出现。
+//  4. 两段对齐之间的缺口里，变化的新块继承原块 id：先按块类型对齐（插入新块的同时改了相邻块时
+//     不会认错），其余按位置；思维导图同时按文本路径继承节点 id、样式、备注与布局主题。
+//     多出来的新块 id 留空，少了的原块不再出现。
 func Reconcile(original []Node, newMD string, o RenderOptions) ([]Node, error) {
 	parsed, err := Parse(newMD)
 	if err != nil {
@@ -87,6 +88,13 @@ func Reconcile(original []Node, newMD string, o RenderOptions) ([]Node, error) {
 		}
 	}
 
+	// 嵌在新块内部、写明 id 的白板与同步块同样认领原块，避免外层新块按位置抢走这个 id
+	for j := range parsed {
+		if !verbatim[j] {
+			claimNested(parsed[j].Content, original, oldByID, usedOld)
+		}
+	}
+
 	// 缺口内按位置继承 id
 	prevI, prevJ := -1, -1
 	bounds := append(append([][2]int{}, pairs...), [2]int{len(original), len(parsed)})
@@ -102,9 +110,9 @@ func Reconcile(original []Node, newMD string, o RenderOptions) ([]Node, error) {
 				news = append(news, j)
 			}
 		}
-		for t := 0; t < len(olds) && t < len(news); t++ {
-			inherit(&parsed[news[t]], original[olds[t]])
-			usedOld[olds[t]] = true
+		for _, pr := range pairGap(olds, news, original, parsed) {
+			inherit(&parsed[pr[1]], original[pr[0]])
+			usedOld[pr[0]] = true
 		}
 		prevI, prevJ = p[0], p[1]
 	}
@@ -116,6 +124,45 @@ func Reconcile(original []Node, newMD string, o RenderOptions) ([]Node, error) {
 	}
 	dedupeIDs(result, verbatim, oldWhiteboards)
 	return result, nil
+}
+
+func claimNested(ns []Node, original []Node, oldByID map[string]int, usedOld []bool) {
+	for _, n := range ns {
+		if carriesID(n) {
+			if i, ok := oldByID[nodeID(n)]; ok && !usedOld[i] && original[i].Type == n.Type {
+				usedOld[i] = true
+			}
+		}
+		claimNested(n.Content, original, oldByID, usedOld)
+	}
+}
+
+// pairGap 在一个缺口内配对变化的块：先按块类型做最长公共子序列（插入新块的同时改了旁边的块时，
+// 改过的块仍能认回自己的 id），剩下的再按位置配对。
+func pairGap(olds, news []int, original, parsed []Node) [][2]int {
+	if len(olds) == 0 || len(news) == 0 {
+		return nil
+	}
+	ot := make([]string, len(olds))
+	for k, i := range olds {
+		ot[k] = original[i].Type
+	}
+	nt := make([]string, len(news))
+	for k, j := range news {
+		nt[k] = parsed[j].Type
+	}
+	var out [][2]int
+	pi, pj := -1, -1
+	for _, p := range append(alignBlocks(ot, nt), [2]int{len(olds), len(news)}) {
+		for t := 0; pi+1+t < p[0] && pj+1+t < p[1]; t++ {
+			out = append(out, [2]int{olds[pi+1+t], news[pj+1+t]})
+		}
+		if p[0] < len(olds) {
+			out = append(out, [2]int{olds[p[0]], news[p[1]]})
+		}
+		pi, pj = p[0], p[1]
+	}
+	return out
 }
 
 // carriesID 报告块的 id 是否写在 Markdown 里。

@@ -3,6 +3,7 @@ package lnmd
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -74,7 +75,7 @@ func TestReconcileUnchanged(t *testing.T) {
 		t.Fatalf("未改动的页面应原样返回\n原:%s\n新:%s", jsonOf(orig), jsonOf(out))
 	}
 	// 渲染给智能体看的文本不含普通块 id
-	if strings.Contains(md, "b1") || strings.Contains(md, "b2") || strings.Contains(md, "th1") {
+	if strings.Contains(md, "b7") || strings.Contains(md, "b10") || strings.Contains(md, "li1") || strings.Contains(md, "th1") || strings.Contains(md, "mm1") {
 		t.Fatalf("Markdown 不应出现块 id 或批注：\n%s", md)
 	}
 }
@@ -220,6 +221,29 @@ func TestReconcileMindmap(t *testing.T) {
 	}
 }
 
+func TestReconcileInsertAndModifyNeighbor(t *testing.T) {
+	orig := samplePage()
+	md := Render(orig, testOpts)
+	// 在思维导图前插入一个标题，同时改思维导图：思维导图仍应认回自己的 id 与数据
+	md = strings.Replace(md, "```mindmap\n- 中心", "## 新标题\n\n```mindmap\n- 中心", 1)
+	md = strings.Replace(md, "  - 分支二", "  - 分支二改", 1)
+	// 在结尾段落前插入一个列表，同时改结尾段落
+	md = strings.Replace(md, "结尾段落", "- 新列表\n\n结尾段落改", 1)
+	out := reconcile(t, orig, md)
+	if ids(out) != "b1,b2,b3,b4,wb1,,mm1,,b7,sync1,b9,b10" {
+		t.Fatalf("%s %s", ids(out), types(out))
+	}
+	data := out[6].Attrs["data"].(map[string]any)
+	if data["theme"] != "classic" || data["root"].(map[string]any)["id"] != "m0" {
+		t.Fatal(jsonOf(out[6]))
+	}
+	// 段落改成标题（类型变了）仍按位置继承
+	out = reconcile(t, []Node{withID(para(txt("甲")), "a")}, "## 甲")
+	if ids(out) != "a" || out[0].Type != tHeading {
+		t.Fatal(jsonOf(out))
+	}
+}
+
 func TestReconcileRewrite(t *testing.T) {
 	orig := []Node{withID(para(txt("甲")), "a"), withID(para(txt("乙")), "b"), withID(para(txt("丙")), "c")}
 	out := reconcile(t, orig, "一\n\n二")
@@ -307,7 +331,7 @@ func bigPage(n int) []Node {
 }
 
 func TestReconcileLargePagePerformance(t *testing.T) {
-	const n = 3000
+	const n = 5000
 	orig := bigPage(n)
 	start := time.Now()
 	md := Render(orig, testOpts)
@@ -410,5 +434,86 @@ func TestAlignBlocks(t *testing.T) {
 	}
 	if len(pairs) != want {
 		t.Fatalf("大规模对齐期望 %d 对，得到 %d", want, len(pairs))
+	}
+}
+
+// TestReconcileFuzz 随机增删改移块，检查三条不变量：结果内容与新 Markdown 一致；id 不重复；
+// 文本没变的原块原样保留。
+func TestReconcileFuzz(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	for iter := 0; iter < 300; iter++ {
+		orig := bigPage(rng.Intn(40) + 1)
+		for i := range orig {
+			if rng.Intn(4) == 0 {
+				orig[i] = withID(para(txt(fmt.Sprint("重复", rng.Intn(3)))), orig[i].Attrs["id"].(string))
+			}
+		}
+		// 块内部也可能含空行，所以按块渲染再拼接，而不是按空行切整页
+		var parts []string
+		for _, b := range orig {
+			parts = append(parts, RenderBlock(b, testOpts))
+		}
+		for k := rng.Intn(5); k >= 0; k-- {
+			if len(parts) == 0 {
+				break
+			}
+			i := rng.Intn(len(parts))
+			switch rng.Intn(5) {
+			case 0:
+				parts = append(parts[:i], parts[i+1:]...)
+			case 1:
+				parts = append(parts[:i], append([]string{fmt.Sprint("新块 ", iter, k)}, parts[i:]...)...)
+			case 2:
+				parts[i] += " 改"
+			case 3:
+				j := rng.Intn(len(parts))
+				parts[i], parts[j] = parts[j], parts[i]
+			case 4:
+				parts = append(parts, parts[i])
+			}
+		}
+		md := strings.Join(parts, "\n\n")
+		out := reconcile(t, orig, md)
+		want := mustParse(t, md)
+		if len(out) != len(want) {
+			t.Fatalf("%d: 块数 %d != %d", iter, len(out), len(want))
+		}
+		origText := map[string]bool{}
+		for _, b := range orig {
+			origText[jsonOf(b)] = true
+		}
+		seen := map[string]bool{}
+		for j := range out {
+			if RenderBlock(out[j], testOpts) != RenderBlock(want[j], testOpts) {
+				t.Fatalf("%d: 第 %d 块内容与新 Markdown 不一致", iter, j)
+			}
+			if id := nodeID(out[j]); id != "" {
+				if seen[id] {
+					t.Fatalf("%d: id 重复 %s", iter, ids(out))
+				}
+				seen[id] = true
+			}
+		}
+		// 每个文本未变的原块（在新文本中出现过）都应原样保留下来
+		newTexts := map[string]int{}
+		for _, b := range want {
+			newTexts[RenderBlock(b, testOpts)]++
+		}
+		kept := map[string]int{}
+		for _, b := range out {
+			if origText[jsonOf(b)] {
+				kept[RenderBlock(b, testOpts)]++
+			}
+		}
+		oldTexts := map[string]int{}
+		for _, b := range orig {
+			oldTexts[RenderBlock(b, testOpts)]++
+		}
+		for txt, n := range oldTexts {
+			expect := min(n, newTexts[txt])
+			if kept[txt] < expect {
+				t.Fatalf("%d: 文本未变的原块没有原样保留：%q 期望 %d 得到 %d", iter, txt, expect, kept[txt])
+			}
+		}
 	}
 }

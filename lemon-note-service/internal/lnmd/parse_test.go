@@ -407,6 +407,16 @@ func TestParseLLMStyle(t *testing.T) {
 				t.Fatal(js(bs))
 			}
 		}},
+		{"列表后顶格文字另起一段", "要点：\n- a\n- b\n  续行\n说明：\n| 模块 | 状态 |\n|---|---|\n| 登录 | 好 |", func(t *testing.T, bs []Node) {
+			if types(bs) != "paragraph,bulletList,paragraph,table" || inlineText(bs[1].Content[1].Content[0].Content) != "b⏎续行" {
+				t.Fatal(js(bs))
+			}
+		}},
+		{"段落后紧跟标题列表代码", "段落\n## 标题\n正文\n- 列表\n```\ncode\n```", func(t *testing.T, bs []Node) {
+			if types(bs) != "paragraph,heading,paragraph,bulletList,codeBlock" {
+				t.Fatal(js(bs))
+			}
+		}},
 		{"自动链接", "<https://a.com> 与 <me@a.com> 与 https://b.com", func(t *testing.T, bs []Node) {
 			c := bs[0].Content
 			if marksOf(c[0]) != "link=https://a.com" || marksOf(c[2]) != "link=mailto:me@a.com" || c[3].Text != " 与 https://b.com" {
