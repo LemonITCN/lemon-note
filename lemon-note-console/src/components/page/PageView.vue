@@ -17,6 +17,7 @@ import Btn from '@/components/ui/Btn.vue'
 import Icon from '@/components/icons/Icon.vue'
 import Menu from '@/components/ui/Menu.vue'
 import DatabaseView from '@/components/database/DatabaseView.vue'
+import RowProps from '@/components/database/RowProps.vue'
 import { useWorkspace } from '@/stores/workspace'
 import { useToast } from '@/stores/toast'
 import { useUI } from '@/stores/ui'
@@ -224,6 +225,7 @@ const saveLabel = computed(() => ({ saved: '', saving: t('common.loading'), erro
             </div>
             <textarea ref="titleEl" v-model="title" class="title" rows="1" :placeholder="t('page.untitled')" :readonly="!canEdit" @keydown="titleKey" @blur="saveTitle" />
           </div>
+          <RowProps v-if="page.database_id" :database-id="page.database_id" :row-id="id" :editable="canEdit" />
           <DatabaseView v-if="isDb" :database-id="id" :editable="canEdit" full />
           <Editor v-else ref="editorRef" :key="id" :page-id="id" :space-id="page.space_id" :blocks="data.blocks" :editable="canEdit" :page-title="title"
             @state="(s: SaveState) => (saveState = s)" @create-subpage="createSubpage" @create-database="createDatabase" />

@@ -15,6 +15,7 @@ import { errorText } from '@/i18n'
 import { roleAtLeast } from '@/api/types'
 import { dragState } from '@/lib/dnd'
 import NewSpaceDialog from './NewSpaceDialog.vue'
+import { dbApi } from '@/lib/db'
 
 const { t } = useI18n()
 const ws = useWorkspace()
@@ -35,6 +36,19 @@ const spaceMenu = computed(() => [
   { label: t('nav.newSpace'), icon: 'plus', run: () => (newSpaceOpen.value = true) },
   { label: t('settings.spaces'), icon: 'settings', run: () => ui.openSettings('spaces') },
 ])
+
+const newMenu = computed(() => [
+  { label: t('nav.newPage'), icon: 'page', run: newPage },
+  { label: t('editor.database'), icon: 'database', run: newDatabase },
+])
+
+async function newDatabase() {
+  try {
+    const r = await dbApi.create({ space_id: ws.currentSpace!.space.id, title: '' })
+    ws.upsert({ ...r.page, parent_id: undefined, database_id: undefined } as any)
+    router.push(`/p/${r.page.id}`)
+  } catch (e) { toast.error(errorText(e)) }
+}
 
 async function newPage() {
   try {
@@ -66,7 +80,7 @@ async function dropToRoot(e: DragEvent) {
           <Icon name="chevron-down" :size="14" />
         </button>
       </Menu>
-      <IconBtn v-if="canEdit" icon="new-page" :label="t('nav.newPage')" @click="newPage" />
+      <Menu v-if="canEdit" :items="newMenu" align="end"><IconBtn icon="new-page" :label="t('nav.newPage')" /></Menu>
     </div>
     <div class="scroll">
       <div class="quick">

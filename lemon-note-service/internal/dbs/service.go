@@ -219,7 +219,7 @@ func (s *Service) DeleteView(ctx context.Context, actor, viewID string) error {
 		if n <= 1 {
 			return errors.New("至少要保留一个视图")
 		}
-		return tx.Delete("db_views", viewID)
+		return tx.DeleteHint("db_views", viewID, store.Row{"database_id": v.DatabaseID})
 	})
 	return err
 }

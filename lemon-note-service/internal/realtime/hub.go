@@ -61,6 +61,7 @@ type blockEvent struct {
 
 func (h *Hub) onCommit(c store.Commit) {
 	blocksByPage := map[string][]blockEvent{}
+	dbChanged := map[string]bool{}
 	var pageIDs []string
 	revs := map[string]int64{}
 	for _, op := range c.Ops {
@@ -82,6 +83,12 @@ func (h *Hub) onCommit(c store.Commit) {
 			ev.Position, _ = op.Row["position"].(string)
 			ev.Version = toInt(op.Row["version"])
 			blocksByPage[pid] = append(blocksByPage[pid], ev)
+		case "databases":
+			dbChanged[op.ID] = true
+		case "db_views":
+			if id, _ := op.Row["database_id"].(string); id != "" {
+				dbChanged[id] = true
+			}
 		case "pages":
 			pageIDs = append(pageIDs, op.ID)
 			if op.O == "put" {
@@ -94,6 +101,10 @@ func (h *Hub) onCommit(c store.Commit) {
 		h.broadcast(func(conn *Conn) bool {
 			return conn.ID != c.Origin && conn.subscribed("page:"+pid) && h.cat.CanRead(conn.UserID, pid)
 		}, msg)
+	}
+	for dbID := range dbChanged {
+		msg, _ := json.Marshal(Message{Type: "db", Data: map[string]any{"id": dbID, "origin": c.Origin}})
+		h.broadcast(func(conn *Conn) bool { return conn.ID != c.Origin && h.cat.CanRead(conn.UserID, dbID) }, msg)
 	}
 	for _, pid := range pageIDs {
 		meta, ok := h.cat.Page(pid)
