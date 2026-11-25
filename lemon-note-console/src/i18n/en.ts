@@ -134,6 +134,40 @@ export default {
   inbox: {
     title: 'Inbox', empty: 'Nothing new', readAll: 'Mark all read', share: '{name} shared a page with you ({role})', comment: '{name} replied to a comment', mention: '{name} mentioned you',
   },
+  io: {
+    import: 'Import', importTitle: 'Import', exportTitle: 'Export', export: 'Export', source: 'Source', file: 'File', target: 'Import into', spaceRoot: 'Space root',
+    searchPages: 'Search pages', noPages: 'No matching pages', dropHint: 'Drop a file here, or click to choose', token: 'Integration secret', rootPage: 'Root page (optional)',
+    rootPagePh: 'Page link or id; leave empty to import everything', start: 'Start import', uploading: 'Uploading {pct}%', hide: 'Run in background', again: 'Import more',
+    openResult: 'Open', background: 'You can close this window. The import keeps running and you will be notified when it finishes.', doneToast: 'Import finished', failedToast: 'Import failed',
+    warnings: '{n} items were simplified or skipped', omitted: '{n} more not listed',
+    format: 'Format', includeChildren: 'Include subpages', download: 'Download',
+    exportTip: 'A single page without attachments downloads as one file. Otherwise you get a zip: one file per page, subpages in a folder of the same name, attachments in files/, databases as CSV plus row pages.',
+    sources: { notion_zip: 'Notion export', notion_api: 'Notion API', obsidian: 'Obsidian vault', markdown: 'Markdown', csv: 'CSV' },
+    tips: {
+      notion_zip: 'In Notion, choose Export from the page menu, pick "Markdown & CSV" and include subpages. If the export is split into several zips, upload the outer zip as is.',
+      notion_api: 'Create an internal integration under Settings → Connections → Develop or manage integrations, copy its secret, then connect the pages you want to import to it. The secret is used for this import only and is never stored.',
+      rootPage: 'Import only this page and its subpages. Leave empty to import every page the integration can see.',
+      obsidian: 'Zip the whole vault folder and upload it. Wikilinks, embeds, attachments, properties and Canvas files are converted.',
+      markdown: 'Upload a single .md file, or a zip of a folder with Markdown files. Folders become the page hierarchy.',
+      csv: 'Upload a .csv file. Column types are inferred and a database is created.',
+    },
+    phase: { queued: 'Waiting', reading: 'Reading', creating: 'Creating pages', done: 'Import finished', failed: 'Import failed' },
+    counts: { pages: '{n} pages', databases: '{n} databases', rows: '{n} rows', files: '{n} attachments' },
+    warn: {
+      unsafe_path: 'Unsafe path, skipped', symlink: 'Symbolic links are not imported', bad_zip: 'A nested zip could not be opened, skipped',
+      file_too_large: 'Attachment exceeds the size limit ({detail}), skipped', file_failed: 'Attachment could not be read or downloaded, skipped', file_missing: 'Referenced attachment is missing from the package',
+      content_failed: 'Content could not be read; an empty page was created', block_too_large: 'A block was too large and was skipped', page_failed: 'Page could not be created and was skipped (with its subpages)',
+      text_too_large: 'File too large; content not imported', csv_failed: 'CSV could not be read; the database was created empty', csv_truncated: 'Too many rows; extra rows were not imported',
+      value_dropped: 'Property value not recognized and left empty', unreferenced_files: '{detail} attachments are not referenced by any note and were not imported',
+      link_unresolved: 'Wikilink target does not exist; kept as text', embed_note: 'Note embeds became page links', canvas_failed: 'Canvas file not recognized; whiteboard not imported',
+      notion_no_access: 'No access to part of the Notion content; skipped', too_deep: 'Blocks nested too deeply; the deepest content was not imported', synced_block: 'Synced blocks became regular content',
+      unsupported_block: 'Unsupported block ({detail}) skipped', user_mention: 'People mentions became text', people_as_text: 'People properties became text',
+      time_as_date: 'Created / edited time properties became plain dates', formula_as_text: 'Formula could not be converted; kept its values as text',
+      unsupported_property: 'Unsupported property type ({detail}) skipped', schema_fallback: 'Parts of the database schema could not be converted and became text',
+      relation_truncated: 'Only the first 25 relations were imported', relation_dropped: 'The related database was not imported, so the relation was dropped',
+      dangling_ref: 'Mentions and links to pages that were not imported became text',
+    },
+  },
   roles: { owner: 'Owner', admin: 'Admin', editor: 'Can edit', commenter: 'Can comment', viewer: 'Can view' },
   audit: {
     backup_baidu_authorize: 'Authorized Baidu Netdisk', backup_restore: 'Restored a backup', backup_run: 'Ran a backup', backup_target_create: 'Created backup target', backup_target_delete: 'Deleted backup target', backup_target_update: 'Updated backup target', backup_verify: 'Verified a backup',
@@ -176,6 +210,6 @@ export default {
   errors: {
     network: 'Cannot reach the server', unauthorized: 'Please sign in', forbidden: 'Permission denied', not_found: 'Not found', csrf: 'Request check failed. Please reload',
     too_many_attempts: 'Too many attempts. Try again later', bad_credentials: 'Incorrect username or password', internal: 'Internal server error', page_locked: 'Page is locked',
-    read_only: 'The system is read-only right now', too_large: 'Content too large',
+    read_only: 'The system is read-only right now', too_large: 'Content too large', import_busy: 'Another import is in progress. Please try again later.',
   },
 }

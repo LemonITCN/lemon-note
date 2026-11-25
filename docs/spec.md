@@ -425,6 +425,20 @@ COS 与 OSS 走各自的 S3 兼容接口（虚拟主机风格），界面上是�
 - 导入：Notion 导出包（zip，Markdown + CSV）、Notion API（集成密钥，保留属性类型、关联、标注框、分栏等）、Obsidian 库（zip 或文件夹上传：双链、嵌入、附件、属性区、标签、Canvas 转白板）、通用 Markdown 文件夹、CSV（建数据库）。导入在后台任务里执行，有进度与报告（哪些内容降级了）。
 - 导出：页面或整个空间导出为 Markdown + CSV + 附件 zip、HTML；单页可浏览器打印为 PDF；整站导出为 Lemon Note 备份包。
 
+接口与约定（`internal/importer`、`internal/exporter`）：
+
+| 接口 | 说明 |
+|---|---|
+| `POST /api/import` | multipart，字段按顺序 `kind`（notion_zip / obsidian / markdown / csv）、`space_id`、`parent_id`、`file`（放最后）；返回 `{job}` |
+| `POST /api/import/notion-api` | JSON `{token, root_page_id, space_id, parent_id}`；密钥只在任务内存里用，不落盘、不进日志与报告 |
+| `GET /api/import/{id}` | 任务进度与报告，只能看自己的任务 |
+| `GET /api/pages/{id}/export?format=md\|html&children=1` | 单页、无子页面、无附件时下载单个 .md / .html；否则流式下载 zip |
+
+- 任务：`{id, kind, status: queued|running|done|failed, progress: {phase, done, total, current}, report: {pages, databases, rows, files, root_ids, warnings: [{code, path, detail, message}], omitted_warnings, error}}`。同一用户同时一个任务，全站同时最多 3 个。
+- 导入目标是空间根或某个普通页面（需要编辑权限，不能是数据库）。先读来源生成计划树并预先分配全部页面 id，再按层级分批建页（上级提交后才建下级）。
+- 安全：zip 路径一律规范化，含 `..`、绝对路径、盘符的条目与符号链接跳过；文件数、解压总量、内层 zip 个数都有上限；附件大小上限取系统设置 `max_upload_mb`；外部请求（Notion API、文件下载）走防 SSRF 客户端。
+- 导出 zip 布局：`标题.md`，子页面在同名文件夹 `标题/` 里（重名加「 (2)」），数据库是 `标题.csv`（显示值）加 `标题/行.md`，附件在 `files/`，正文里的站内链接与 `lemon://file/<id>` 改成相对路径。这个布局可以用 Markdown 导入原样导回来。只导出当前用户能读的页面与附件。
+
 ## 12. 安全
 
 - 口令 argon2id；登录按 IP 与账号双维度限流、逐步延迟；错误信息不区分「用户不存在」与「口令错误」。

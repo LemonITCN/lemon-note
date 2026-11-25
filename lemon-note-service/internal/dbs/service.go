@@ -107,6 +107,8 @@ func (s *Service) Views(ctx context.Context, dbID string) ([]ViewInfo, error) {
 
 // CreateInput 新建数据库参数。
 type CreateInput struct {
+	ID       string // 可选，指定 id（导入时用）
+	Position string // 可选，直接指定排序键（导入时用）
 	SpaceID  string
 	ParentID string
 	Title    string
@@ -126,8 +128,8 @@ func (s *Service) CreateTx(tx *store.Tx, actor string, in CreateInput) (*model.P
 	if err := sc.Validate(); err != nil {
 		return nil, nil, err
 	}
-	p, err := s.pages.CreateTx(tx, actor, pages.CreateInput{SpaceID: in.SpaceID, ParentID: in.ParentID, Kind: model.KindDatabase, Title: in.Title, Icon: in.Icon,
-		AfterID: in.AfterID, Flags: model.PageFlags{Inline: in.Inline}})
+	p, err := s.pages.CreateTx(tx, actor, pages.CreateInput{ID: in.ID, SpaceID: in.SpaceID, ParentID: in.ParentID, Kind: model.KindDatabase, Title: in.Title, Icon: in.Icon,
+		AfterID: in.AfterID, Position: in.Position, Flags: model.PageFlags{Inline: in.Inline}})
 	if err != nil {
 		return nil, nil, err
 	}

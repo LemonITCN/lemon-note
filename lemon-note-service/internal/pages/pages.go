@@ -131,6 +131,7 @@ type CreateInput struct {
 	IsTemplate bool
 	AfterID    string // 插在某个兄弟后面；空表示末尾
 	First      bool   // 插在最前
+	Position   string // 可选，直接指定排序键（导入时一个事务里建多个兄弟页面用，忽略 AfterID / First）
 	Blocks     []BlockDoc
 }
 
@@ -168,8 +169,13 @@ func (s *Service) CreateTx(tx *store.Tx, actor string, in CreateInput) (*model.P
 	if in.DatabaseID != "" && in.DatabaseID != in.ParentID {
 		return nil, errors.New("数据库行的上级必须是数据库本身")
 	}
-	pos, err := s.siblingPosition(in.SpaceID, in.ParentID, in.AfterID, in.First)
-	if err != nil {
+	pos := in.Position
+	if pos == "" {
+		var err error
+		if pos, err = s.siblingPosition(in.SpaceID, in.ParentID, in.AfterID, in.First); err != nil {
+			return nil, err
+		}
+	} else if err := fracidx.Validate(pos); err != nil {
 		return nil, err
 	}
 	id := in.ID

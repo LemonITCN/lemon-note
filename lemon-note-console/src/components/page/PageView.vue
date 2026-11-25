@@ -12,6 +12,7 @@ import IconPicker from './IconPicker.vue'
 import PageCover from './PageCover.vue'
 import HistoryPanel from './HistoryPanel.vue'
 import ShareDialog from './ShareDialog.vue'
+import ExportDialog from '@/components/io/ExportDialog.vue'
 import CommentsPanel, { type CommentDraft } from './CommentsPanel.vue'
 import IconBtn from '@/components/ui/IconBtn.vue'
 import Btn from '@/components/ui/Btn.vue'
@@ -40,6 +41,7 @@ const title = ref('')
 const saveState = ref<SaveState>('saved')
 const historyOpen = ref(false)
 const shareOpen = ref(false)
+const exportOpen = ref(false)
 const commentsOpen = ref(false)
 const commentDraft = ref<CommentDraft | null>(null)
 const commentsRef = ref<InstanceType<typeof CommentsPanel>>()
@@ -163,7 +165,7 @@ const moreMenu = computed(() => {
     { label: t('editor.addToChat'), icon: 'assistant', run: () => addToChat({ kind: isDb.value ? 'database' : 'page', id: props.id, title: title.value, icon: page.value?.icon }) },
     ...(ui.isMobile ? [{ label: t('page.share'), icon: 'share', run: () => (shareOpen.value = true) }] : []),
     { label: t('page.copyLink'), icon: 'link', run: () => { navigator.clipboard?.writeText(location.origin + '/p/' + props.id); toast.success(t('common.copied')) } },
-    { label: t('page.exportMarkdown'), icon: 'download', run: () => window.open(`/api/pages/${props.id}/export?format=md`, '_blank') },
+    { label: t('io.export'), icon: 'download', run: () => (exportOpen.value = true) },
   ]
   if (canEdit.value) {
     items.push({ label: t('page.duplicate'), icon: 'duplicate', run: async () => { const m = await ws.duplicatePage(props.id); router.push(`/p/${m.id}`) } })
@@ -246,6 +248,7 @@ const saveLabel = computed(() => ({ saved: '', saving: t('common.loading'), erro
     </div>
     <HistoryPanel v-if="page" v-model:open="historyOpen" :page-id="id" :editable="canEdit" @restored="data = null; load()" />
     <ShareDialog v-if="page" v-model:open="shareOpen" :page-id="id" :page-title="title" :role="data?.role || ''" />
+    <ExportDialog v-if="page" v-model:open="exportOpen" :page-id="id" :has-children="!!data?.children?.length" />
   </div>
 </template>
 

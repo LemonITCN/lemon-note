@@ -16,6 +16,7 @@ import { roleAtLeast } from '@/api/types'
 import { dragState } from '@/lib/dnd'
 import NewSpaceDialog from './NewSpaceDialog.vue'
 import InboxButton from './InboxButton.vue'
+import ImportDialog from '@/components/io/ImportDialog.vue'
 import { dbApi } from '@/lib/db'
 
 const { t } = useI18n()
@@ -25,6 +26,7 @@ const router = useRouter()
 const toast = useToast()
 const trashOpen = ref(false)
 const newSpaceOpen = ref(false)
+const importOpen = ref(false)
 const rootDrop = ref(false)
 const roots = computed(() => (ws.currentSpace ? ws.children(ws.currentSpace.space.id, undefined) : []))
 const canEdit = computed(() => roleAtLeast(ws.currentSpace?.role || '', 'editor'))
@@ -113,9 +115,11 @@ async function dropToRoot(e: DragEvent) {
       <button v-if="canEdit && !roots.length" class="item faint" @click="newPage"><Icon name="plus" :size="16" /><span>{{ t('nav.newPage') }}</span></button>
     </div>
     <div class="bottom">
+      <button v-if="canEdit" class="item" @click="importOpen = true"><Icon name="upload" :size="17" /><span>{{ t('io.import') }}</span></button>
       <button class="item" @click="trashOpen = true"><Icon name="trash" :size="17" /><span>{{ t('nav.trash') }}</span></button>
     </div>
     <TrashPanel v-model:open="trashOpen" />
+    <ImportDialog v-model:open="importOpen" />
     <NewSpaceDialog v-model:open="newSpaceOpen" />
   </aside>
 </template>

@@ -134,6 +134,40 @@ export default {
   inbox: {
     title: '收件箱', empty: '没有新消息', readAll: '全部已读', share: '{name} 把页面分享给你（{role}）', comment: '{name} 回复了评论', mention: '{name} 在页面里提到了你',
   },
+  io: {
+    import: '导入', importTitle: '导入', exportTitle: '导出', export: '导出', source: '来源', file: '文件', target: '导入到', spaceRoot: '空间根目录',
+    searchPages: '搜索页面', noPages: '没有匹配的页面', dropHint: '拖入文件，或点击选择', token: '集成密钥', rootPage: '根页面（可选）',
+    rootPagePh: '页面链接或 id，留空导入全部', start: '开始导入', uploading: '正在上传 {pct}%', hide: '后台运行', again: '继续导入',
+    openResult: '打开', background: '可以关闭窗口，导入会在后台继续，完成后会提示。', doneToast: '导入完成', failedToast: '导入失败',
+    warnings: '{n} 项内容降级或跳过', omitted: '另有 {n} 项未列出',
+    format: '格式', includeChildren: '包含子页面', download: '下载',
+    exportTip: '只有本页且没有附件时下载单个文件；否则下载 zip：每个页面一个文件，子页面放在同名文件夹里，附件放在 files/，数据库导出为 CSV 与行页面。',
+    sources: { notion_zip: 'Notion 导出包', notion_api: 'Notion API', obsidian: 'Obsidian 库', markdown: 'Markdown', csv: 'CSV' },
+    tips: {
+      notion_zip: '在 Notion 页面菜单里选择「导出」，格式选「Markdown & CSV」并包含子页面。导出分成多个 zip 时，直接上传外层的 zip。',
+      notion_api: '在 Notion 的「设置 → 连接 → 开发或管理集成」新建内部集成并复制密钥，再在要导入的页面菜单里把它连接到这个集成。密钥只用于这一次导入，不会保存。',
+      rootPage: '只导入这个页面及其子页面。留空则导入集成能看到的全部页面。',
+      obsidian: '把整个库文件夹压缩成 zip 上传。双链、嵌入、附件、属性区与 Canvas 会一并转换。',
+      markdown: '上传单个 .md 文件，或包含 Markdown 的文件夹压缩包，文件夹会变成页面层级。',
+      csv: '上传 .csv 文件，按列推断属性类型，建成一个数据库。',
+    },
+    phase: { queued: '排队中', reading: '正在读取', creating: '正在创建页面', done: '导入完成', failed: '导入失败' },
+    counts: { pages: '{n} 个页面', databases: '{n} 个数据库', rows: '{n} 行', files: '{n} 个附件' },
+    warn: {
+      unsafe_path: '路径不安全，已跳过', symlink: '符号链接不导入，已跳过', bad_zip: '内层 zip 无法打开，已跳过',
+      file_too_large: '附件超过大小上限（{detail}），已跳过', file_failed: '附件读取或下载失败，已跳过', file_missing: '引用的附件在导入包里找不到',
+      content_failed: '正文读取失败，已建空白页面', block_too_large: '有一个块内容过大，已跳过', page_failed: '页面无法创建，已跳过（含子页面）',
+      text_too_large: '文件太大，正文未导入', csv_failed: 'CSV 无法读取，数据库按空表导入', csv_truncated: '行数超过上限，多出的行未导入',
+      value_dropped: '属性值无法识别，已留空', unreferenced_files: '有 {detail} 个附件没有被任何笔记引用，未导入',
+      link_unresolved: '双链指向的笔记不存在，保留为文字', embed_note: '笔记嵌入已改成页面链接', canvas_failed: 'Canvas 文件无法识别，白板未导入',
+      notion_no_access: '无权读取这部分 Notion 内容，已跳过', too_deep: '块嵌套太深，深处的内容未导入', synced_block: '同步块已转成普通内容',
+      unsupported_block: '有不支持的块（{detail}），已跳过', user_mention: '人员提及已转成文字', people_as_text: '人员属性已转成文本',
+      time_as_date: '创建 / 编辑时间属性已转成普通日期', formula_as_text: '公式无法转换，已改成文本并保留计算结果',
+      unsupported_property: '有不支持的属性类型（{detail}），已跳过', schema_fallback: '数据库结构有无法转换的部分，相关属性已改成文本',
+      relation_truncated: '关联超过 25 条的只导入了前 25 条', relation_dropped: '关联的数据库不在导入范围内，关联属性未导入',
+      dangling_ref: '指向未导入页面的提及与链接已改成文字',
+    },
+  },
   roles: { owner: '所有者', admin: '管理员', editor: '可编辑', commenter: '可评论', viewer: '可查看' },
   audit: {
     backup_baidu_authorize: '授权百度网盘', backup_restore: '恢复备份', backup_run: '执行备份', backup_target_create: '新建备份目标', backup_target_delete: '删除备份目标', backup_target_update: '修改备份目标', backup_verify: '校验备份',
@@ -176,6 +210,6 @@ export default {
   errors: {
     network: '无法连接服务器', unauthorized: '请先登录', forbidden: '没有权限', not_found: '内容不存在', csrf: '请求校验失败，请刷新页面',
     too_many_attempts: '尝试次数过多，请稍后再试', bad_credentials: '用户名或口令不正确', internal: '服务器内部错误', page_locked: '页面已锁定',
-    read_only: '系统当前处于只读状态', too_large: '内容太大',
+    read_only: '系统当前处于只读状态', too_large: '内容太大', import_busy: '已有导入任务正在进行，请稍后再试',
   },
 }

@@ -27,8 +27,10 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/dbs"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/exporter"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/ids"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/importer"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/lnmd"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/mcpserver"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/oauth"
@@ -109,6 +111,7 @@ type Services struct {
 	OAuth    *oauth.Service
 	Agent    *agent.Service
 	Backup   *engine.Engine
+	Importer *importer.Service
 	Web      *web.Server
 }
 
@@ -304,6 +307,9 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 	svc.Web.Extra = append(svc.Web.Extra, svc.Share.Public(svc.Web))
 	svc.Agent = agent.New(st, cat, svc.Pages, set, box, svc.Hub, a.Log, svc.Tools)
 	svc.Web.AddMount(svc.Agent.Mount)
+	svc.Importer = importer.New(st, cat, svc.Pages, svc.DBs, svc.Files, set, inst.CacheDir, a.Log)
+	svc.Web.AddMount(svc.Importer.Mount)
+	svc.Web.AddMount(exporter.New(cat, svc.Pages, svc.DBs, svc.Files, a.Log).Mount)
 	if err := a.buildBackup(svc); err != nil {
 		return nil, fmt.Errorf("创建备份引擎失败: %w", err)
 	}
@@ -359,6 +365,9 @@ func (a *App) Stop(ctx context.Context) error {
 	if svc != nil {
 		if svc.Agent != nil {
 			svc.Agent.StopAll()
+		}
+		if svc.Importer != nil {
+			svc.Importer.Stop()
 		}
 		for _, fn := range stopHooks {
 			fn(svc)

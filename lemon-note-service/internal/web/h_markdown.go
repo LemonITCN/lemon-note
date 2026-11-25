@@ -1,20 +1,16 @@
 package web
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/lnmd"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/model"
 	"github.com/go-chi/chi/v5"
 )
 
+// routesMarkdown 挂 Markdown 解析接口。页面导出（GET /api/pages/{id}/export）由 exporter 模块挂载。
 func (s *Server) routesMarkdown(r chi.Router) {
 	r.Post("/api/markdown/parse", s.h(s.handleParseMarkdown))
-	r.Get("/api/pages/{id}/export", s.h(s.handleExportPage))
 }
 
 // RenderOpts 按当前请求的权限解析页面标题与用户名。
@@ -50,33 +46,4 @@ func (s *Server) handleParseMarkdown(w http.ResponseWriter, r *http.Request) err
 		nodes = []lnmd.Node{}
 	}
 	return ok(w, map[string]any{"blocks": nodes})
-}
-
-func (s *Server) handleExportPage(w http.ResponseWriter, r *http.Request) error {
-	id := chi.URLParam(r, "id")
-	meta, err := s.NeedPage(r, id, model.RoleViewer)
-	if err != nil {
-		return err
-	}
-	bs, err := s.Pages.Blocks(r.Context(), id)
-	if err != nil {
-		return err
-	}
-	nodes := make([]lnmd.Node, 0, len(bs))
-	for _, b := range bs {
-		var n lnmd.Node
-		if json.Unmarshal([]byte(b.Data), &n) == nil {
-			nodes = append(nodes, n)
-		}
-	}
-	md := lnmd.Render(nodes, s.RenderOpts(r))
-	title := strings.TrimSpace(meta.Title)
-	if title == "" {
-		title = "untitled"
-	}
-	body := "# " + title + "\n\n" + md + "\n"
-	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s.md", url.PathEscape(title)))
-	_, err = w.Write([]byte(body))
-	return err
 }
