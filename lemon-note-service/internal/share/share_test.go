@@ -123,7 +123,7 @@ func TestSanitize(t *testing.T) {
 		map[string]any{"type": "text", "text": "a", "marks": []any{map[string]any{"type": "link", "attrs": map[string]any{"href": "/p/" + f.outside}}, map[string]any{"type": "bold"}}},
 		map[string]any{"type": "text", "text": "b", "marks": []any{map[string]any{"type": "link", "attrs": map[string]any{"href": "https://x.example/p/" + f.root}}}},
 		map[string]any{"type": "text", "text": "c", "marks": []any{map[string]any{"type": "link", "attrs": map[string]any{"href": "https://other.example/p/abc"}}}},
-		map[string]any{"type": "text", "text": "d", "marks": []any{map[string]any{"type": "comment", "attrs": map[string]any{"threadId": "t1"}}}},
+		map[string]any{"type": "text", "text": "d", "marks": []any{map[string]any{"type": "comment", "attrs": map[string]any{"threadId": "THREAD-SECRET"}}}},
 	}}
 	raw, _ := json.Marshal(in)
 	out := string(sc.sanitizeBlock(raw, "tok"))
@@ -139,7 +139,7 @@ func TestSanitize(t *testing.T) {
 	if !strings.Contains(out, "https://other.example/p/abc") {
 		t.Fatalf("外站链接被误删: %s", out)
 	}
-	if strings.Contains(out, "comment") || strings.Contains(out, "t1") {
+	if strings.Contains(out, "comment") || strings.Contains(out, "THREAD-SECRET") {
 		t.Fatalf("评论标记没去掉: %s", out)
 	}
 	if !strings.Contains(out, `"bold"`) {
