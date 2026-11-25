@@ -33,14 +33,25 @@ async function load() {
   return MindMap
 }
 
-function themeName() { return ui.effectiveTheme === 'dark' ? 'dark' : 'default' }
+// simple-mind-map 核心只带 default 主题；深色模式用 themeConfig 覆盖颜色，背景透明跟随页面。
+function themeName() { return 'default' }
+function themeConfig() {
+  if (ui.effectiveTheme !== 'dark') return { backgroundColor: 'transparent' }
+  return {
+    backgroundColor: 'transparent', lineColor: '#6b8f88', generalizationLineColor: '#6b8f88', associativeLineColor: '#9aa0a6', associativeLineTextColor: '#c9ccd1',
+    root: { fillColor: '#3f7a70', color: '#ffffff', borderColor: 'transparent' },
+    second: { fillColor: '#2a2d31', color: '#e6e6e6', borderColor: '#5c8a82' },
+    node: { fillColor: 'transparent', color: '#d4d6d9', borderColor: 'transparent' },
+    generalization: { fillColor: '#2a2d31', color: '#e6e6e6', borderColor: '#5c8a82' },
+  }
+}
 
 async function mountPreview() {
   const MM = await load()
   if (!preview.value) return
   inst.value?.destroy()
   const d = data()
-  inst.value = new MM({ el: preview.value, data: toSMM(d.root), layout: d.layout || 'logicalStructure', theme: themeName(), readonly: true,
+  inst.value = new MM({ el: preview.value, data: toSMM(d.root), layout: d.layout || 'logicalStructure', theme: themeName(), themeConfig: themeConfig(), readonly: true,
     enableFreeDrag: false, mousewheelAction: 'move', fit: true })
   setTimeout(() => inst.value?.view?.fit?.(), 50)
 }
@@ -51,7 +62,7 @@ async function openEditor() {
   await nextTick()
   const MM = await load()
   const d = data()
-  fullInst.value = new MM({ el: full.value, data: toSMM(d.root), layout: d.layout || 'logicalStructure', theme: themeName(), readonly: false })
+  fullInst.value = new MM({ el: full.value, data: toSMM(d.root), layout: d.layout || 'logicalStructure', theme: themeName(), themeConfig: themeConfig(), readonly: false })
   fullInst.value.on('data_change', (tree: any) => {
     props.updateAttributes({ data: { ...data(), root: fromSMM(tree), layout: layout.value } })
   })
@@ -70,7 +81,7 @@ function closeEditor() {
 
 watch(layout, (v) => fullInst.value?.setLayout(v))
 watch(() => props.node.attrs.data, () => { if (!editing.value) mountPreview() }, { deep: true })
-watch(() => ui.effectiveTheme, () => { mountPreview(); fullInst.value?.setTheme(themeName()) })
+watch(() => ui.effectiveTheme, () => { mountPreview(); fullInst.value?.setThemeConfig(themeConfig()) })
 onMounted(() => {
   if (!props.node.attrs.data && props.editor.isEditable) props.updateAttributes({ data: defaultMind(t('editor.mindmap')) })
   mountPreview()
