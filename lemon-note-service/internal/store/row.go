@@ -180,3 +180,113 @@ func normalizeRow(t *Table, row Row, strict bool) ([]string, []any, Row, error) 
 	}
 	return cols, vals, clean, nil
 }
+
+// FromRow 把 Row 填进带 db 标签的结构体（dst 必须是指针）。
+func FromRow(row Row, dst any) error {
+	rv := reflect.ValueOf(dst)
+	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("store: FromRow 需要结构体指针，得到 %T", dst)
+	}
+	rv = rv.Elem()
+	for _, f := range structFields(rv.Type()) {
+		v, ok := row[f.col]
+		if !ok {
+			continue
+		}
+		if err := assign(rv.FieldByIndex(f.index), v); err != nil {
+			return fmt.Errorf("store: 列 %s: %w", f.col, err)
+		}
+	}
+	return nil
+}
+
+func toInt64(v any) (int64, bool) {
+	switch x := v.(type) {
+	case int64:
+		return x, true
+	case int:
+		return int64(x), true
+	case float64:
+		return int64(x), true
+	case json.Number:
+		if n, err := x.Int64(); err == nil {
+			return n, true
+		}
+		if f, err := x.Float64(); err == nil {
+			return int64(f), true
+		}
+	case bool:
+		if x {
+			return 1, true
+		}
+		return 0, true
+	}
+	return 0, false
+}
+
+func assign(fv reflect.Value, v any) error {
+	if v == nil {
+		fv.Set(reflect.Zero(fv.Type()))
+		return nil
+	}
+	if fv.Kind() == reflect.Pointer {
+		nv := reflect.New(fv.Type().Elem())
+		if err := assign(nv.Elem(), v); err != nil {
+			return err
+		}
+		fv.Set(nv)
+		return nil
+	}
+	switch fv.Kind() {
+	case reflect.String:
+		switch x := v.(type) {
+		case string:
+			fv.SetString(x)
+		case []byte:
+			fv.SetString(string(x))
+		default:
+			fv.SetString(fmt.Sprint(x))
+		}
+	case reflect.Int, reflect.Int64, reflect.Int32:
+		n, ok := toInt64(v)
+		if !ok {
+			return fmt.Errorf("无法转换 %T 为整数", v)
+		}
+		fv.SetInt(n)
+	case reflect.Bool:
+		n, ok := toInt64(v)
+		if !ok {
+			return fmt.Errorf("无法转换 %T 为布尔", v)
+		}
+		fv.SetBool(n != 0)
+	case reflect.Float64, reflect.Float32:
+		switch x := v.(type) {
+		case float64:
+			fv.SetFloat(x)
+		case json.Number:
+			f, _ := x.Float64()
+			fv.SetFloat(f)
+		default:
+			n, _ := toInt64(v)
+			fv.SetFloat(float64(n))
+		}
+	case reflect.Slice:
+		if fv.Type().Elem().Kind() == reflect.Uint8 {
+			switch x := v.(type) {
+			case []byte:
+				fv.SetBytes(x)
+			case string:
+				b, err := base64.StdEncoding.DecodeString(x)
+				if err != nil {
+					return err
+				}
+				fv.SetBytes(b)
+			}
+			return nil
+		}
+		return fmt.Errorf("不支持的切片类型 %s", fv.Type())
+	default:
+		return fmt.Errorf("不支持的字段类型 %s", fv.Type())
+	}
+	return nil
+}

@@ -29,10 +29,11 @@ type Op struct {
 
 // Commit 是一次提交的全部变更。
 type Commit struct {
-	Seq   int64
-	TS    int64
-	Actor string
-	Ops   []Op
+	Seq    int64
+	TS     int64
+	Actor  string
+	Origin string // 发起改动的客户端连接 id（只在内存里，用于实时广播去回声）
+	Ops    []Op
 }
 
 // Options 打开工作库的参数。
@@ -304,9 +305,13 @@ type Tx struct {
 	tx    *sqlx.Tx
 	ctx   context.Context
 	ops   []Op
-	pos   map[string]int
-	after []func()
+	pos    map[string]int
+	after  []func()
+	origin string
 }
+
+// SetOrigin 标记发起改动的客户端连接（实时广播时不回发给它）。
+func (tx *Tx) SetOrigin(o string) { tx.origin = o }
 
 // Write 执行一次写事务；业务表的改动经外箱进日志。返回本次分配的序号（无改动为 0）。
 func (s *Store) Write(ctx context.Context, actor string, fn func(tx *Tx) error) (int64, error) {
@@ -368,7 +373,7 @@ func (s *Store) writeOnce(ctx context.Context, actor string, fn func(tx *Tx) err
 	}
 	done = true
 	if seq > 0 {
-		c := Commit{Seq: seq, TS: ts, Actor: actor, Ops: tx.ops}
+		c := Commit{Seq: seq, TS: ts, Actor: actor, Origin: tx.origin, Ops: tx.ops}
 		s.subMu.RLock()
 		subs := append([]func(Commit){}, s.subs...)
 		s.subMu.RUnlock()
@@ -446,7 +451,10 @@ func (tx *Tx) Put(table string, v any) error {
 }
 
 // Delete 删除一行。
-func (tx *Tx) Delete(table, id string) error {
+func (tx *Tx) Delete(table, id string) error { return tx.DeleteHint(table, id, nil) }
+
+// DeleteHint 删除一行，并在变更里附带少量提示字段（例如块所属页面），供实时推送使用；重放时忽略。
+func (tx *Tx) DeleteHint(table, id string, hint Row) error {
 	t, ok := TableByName(table)
 	if !ok {
 		return fmt.Errorf("store: 未知的表 %s", table)
@@ -455,7 +463,7 @@ func (tx *Tx) Delete(table, id string) error {
 		return err
 	}
 	if t.Journaled {
-		tx.record(Op{T: table, O: "del", ID: id})
+		tx.record(Op{T: table, O: "del", ID: id, Row: hint})
 	}
 	return nil
 }
