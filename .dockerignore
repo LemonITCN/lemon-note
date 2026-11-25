@@ -1,0 +1,21 @@
+# 镜像构建上下文是仓库根目录（lemon-note-service/Dockerfile）。密钥与本机产物一律不进上下文。
+.git
+.github
+.secrets
+**/.DS_Store
+**/.env
+**/.env.*
+**/*.local
+dist
+docs
+scripts
+lemon-note-console/node_modules
+lemon-note-console/dist
+lemon-note-console/public/excalidraw-assets
+lemon-note-service/bin
+lemon-note-service/lemon-note
+lemon-note-service/internal/web/dist/*
+!lemon-note-service/internal/web/dist/.keep
+lemon-note-service/cmd/lemon-note-gui/build
+**/*.syso
+**/*.exe

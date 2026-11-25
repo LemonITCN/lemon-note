@@ -1,0 +1,555 @@
+# 每次推送到 main、每个 PR、推送 v* 标签都构建全部产物并测试。
+# 发布：推送到 main 且全部通过后，自动发布 Release「Lemon Note <版本>.<构建序号>」并标为最新版；推送 v* 标签时按标签版本发布。
+# 版本号由 scripts/version.sh 决定：internal/version 的 Version 去掉 -dev 再加构建序号，标签发布用标签。
+#
+# 产物
+#   命令行版   lemon-note-<版本>-<系统>-<架构>  纯 Go 单文件（关闭 CGO），内嵌前端，可装成系统服务
+#              Linux amd64 / arm64 / armv7 / 386 / riscv64 / loong64 / ppc64le / s390x（tar.gz）、
+#              Windows amd64 / arm64（zip）、macOS Apple 芯片 + Intel 通用（tar.gz）
+#   带界面版   托盘常驻 + 状态窗口（Wails v3，cmd/lemon-note-gui，构建标签 gui）
+#              Windows amd64 / arm64 免安装 zip 与安装包、macOS 通用 DMG、Linux amd64 / arm64 deb 与 AppImage
+#   Docker     ghcr.io/lemonitcn/lemon-note  linux/amd64、linux/arm64（只在推送 main 与标签时推送，PR 只构建）
+#
+# 可选的签名（仓库 Settings → Secrets 配置后自动启用，不配置则跳过）
+#   MACOS_CERTIFICATE_P12 / MACOS_CERTIFICATE_PASSWORD / MACOS_SIGN_IDENTITY   Developer ID 证书（.p12 的 base64），没配时做临时签名
+#   APPLE_NOTARY_KEY_P8 / APPLE_NOTARY_KEY_ID / APPLE_NOTARY_ISSUER_ID         公证（App Store Connect API 密钥，.p8 的 base64）
+#   WINDOWS_CERTIFICATE_PFX / WINDOWS_CERTIFICATE_PASSWORD                     Windows 代码签名证书（.pfx 的 base64）
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GO_VERSION: '1.26'
+  NODE_VERSION: '22'
+  IMAGE: ghcr.io/lemonitcn/lemon-note
+
+jobs:
+  console:
+    name: 前端
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: lemon-note-console/package-lock.json
+      - name: 构建
+        working-directory: lemon-note-console
+        run: |
+          # 锁文件里的下载地址可能是国内镜像，统一换成官方源
+          npm config set replace-registry-host always
+          npm ci --no-audit --no-fund
+          npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: console-dist
+          path: lemon-note-console/dist
+          if-no-files-found: error
+
+  test:
+    name: 服务端测试 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: lemon-note-service
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test -count=1 ./...
+      - name: 带界面版代码检查（Windows、Linux）
+        if: runner.os == 'Linux'
+        run: |
+          # Windows 版不需要 CGO；Linux 版的 CGO 代码要 GTK 头文件，这里用 Wails 的 purego 后端做类型检查，真编译在 linux-gui 任务里
+          GOOS=windows go vet -tags gui,production ./cmd/lemon-note-gui
+          CGO_ENABLED=0 go vet -tags gui,production,purego ./cmd/lemon-note-gui
+      - name: 带界面版代码检查与单元测试（macOS）
+        if: runner.os == 'macOS'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '12.0'
+          CGO_CFLAGS: -mmacosx-version-min=12.0
+          CGO_LDFLAGS: -mmacosx-version-min=12.0
+        run: |
+          go vet -tags gui,production ./cmd/lemon-note-gui
+          go test -count=1 -tags gui ./cmd/lemon-note-gui
+
+  test-db:
+    name: 存储层测试（MySQL 8 / PostgreSQL 16）
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: lemon_note_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -ptest"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: lemon_note_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    env:
+      LEMON_NOTE_TEST_MYSQL_DSN: root:test@tcp(127.0.0.1:3306)/lemon_note_test
+      LEMON_NOTE_TEST_PG_DSN: postgres://postgres:test@127.0.0.1:5432/lemon_note_test?sslmode=disable
+    defaults:
+      run:
+        working-directory: lemon-note-service
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - name: 外部数据库集成测试（初始化、写入、封存、换空库从数据目录重建、快照导出导入）
+        run: go test -count=1 -v -run 'External' ./internal/persist/
+
+  cli:
+    name: 命令行版（Linux、Windows）
+    needs: console
+    runs-on: ubuntu-24.04
+    env:
+      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - uses: actions/download-artifact@v8
+        with:
+          name: console-dist
+          path: lemon-note-service/internal/web/dist
+      - name: 导入 Windows 签名证书
+        if: env.WINDOWS_CERTIFICATE_PFX != ''
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osslsigncode >/dev/null
+          echo "$WINDOWS_CERTIFICATE_PFX" | base64 --decode > "$RUNNER_TEMP/cert.pfx"
+          echo "WINDOWS_CERT_FILE=$RUNNER_TEMP/cert.pfx" >> "$GITHUB_ENV"
+          echo "WINDOWS_CERT_PASSWORD=$WINDOWS_CERTIFICATE_PASSWORD" >> "$GITHUB_ENV"
+      - name: 交叉编译（Linux 8 种架构、Windows 2 种架构）
+        run: OUT=out scripts/build-all.sh linux windows
+      - name: 自测（Linux amd64：启动、首次设置接口、内嵌前端、停止）
+        run: |
+          V="$(scripts/version.sh)"
+          mkdir -p t
+          tar -C t -xzf "out/lemon-note-$V-linux-amd64.tar.gz"
+          t/lemon-note version
+          t/lemon-note serve --config "$PWD/t/lemon-note.toml" --data-dir "$PWD/t/data" --cache-dir "$PWD/t/cache" --listen 127.0.0.1:18686 > t/serve.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:18686/api/bootstrap >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://127.0.0.1:18686/api/bootstrap | grep -q '"mode":"setup"'
+          curl -fsS http://127.0.0.1:18686/ | grep -q '<div id="app">'
+          kill -TERM "$PID"
+          wait "$PID" || true
+          cat t/serve.log
+          grep -q '已停止' t/serve.log
+          file out/* || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli
+          path: out/lemon-note-*
+          if-no-files-found: error
+
+  macos:
+    name: macOS（命令行版与带界面版）
+    needs: console
+    runs-on: macos-26
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+      APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+      APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - uses: actions/download-artifact@v8
+        with:
+          name: console-dist
+          path: lemon-note-service/internal/web/dist
+      - name: 选用最新的正式版 Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_[0-9]*.app | grep -v -i -E 'beta|rc' | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - name: 导入签名证书
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        env:
+          IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          KC="$RUNNER_TEMP/sign.keychain-db"
+          KC_PASS="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          echo "MACOS_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+      - name: 命令行版（Apple 芯片 + Intel 通用单文件）
+        run: |
+          OUT=out scripts/build-all.sh darwin
+          V="$(scripts/version.sh)"
+          mkdir -p t && tar -C t -xzf "out/lemon-note-$V-macos-universal.tar.gz"
+          lipo -info t/lemon-note
+          codesign --verify --verbose=2 t/lemon-note
+          t/lemon-note version
+      - name: 带界面版（通用 .app → DMG）
+        run: |
+          KEEP_APP="$RUNNER_TEMP/app" scripts/package-macos.sh out
+          APP="$RUNNER_TEMP/app/LemonNote.app"
+          lipo -info "$APP/Contents/MacOS/LemonNote"
+          plutil -p "$APP/Contents/Info.plist"
+          "$APP/Contents/MacOS/LemonNote" --version
+      - name: 带界面版自测（后台启动、服务就绪、收到退出信号后先停服务）
+        run: |
+          APP="$RUNNER_TEMP/app/LemonNote.app"
+          T="$RUNNER_TEMP/gui"
+          mkdir -p "$T"
+          LEMON_NOTE_DATA_DIR="$T/data" LEMON_NOTE_CACHE_DIR="$T/cache" LEMON_NOTE_LISTEN=127.0.0.1:18687 \
+            "$APP/Contents/MacOS/LemonNote" --hidden --config "$T/lemon-note.toml" > "$T/stdout.log" 2>&1 &
+          PID=$!
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18687/api/bootstrap 2>/dev/null | grep -q '"mode":"setup"'; then ok=1; break; fi
+            kill -0 "$PID" 2>/dev/null || break
+            sleep 1
+          done
+          kill -TERM "$PID" 2>/dev/null || true
+          for i in $(seq 1 30); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
+          kill -9 "$PID" 2>/dev/null || true
+          cat "$T/stdout.log" || true
+          cat "$T/cache/logs/lemon-note.log" || true
+          [ "$ok" = 1 ] || { echo "服务没有就绪（无图形会话时界面程序可能起不来，见上面的日志）"; exit 1; }
+          grep -q '已停止' "$T/cache/logs/lemon-note.log"
+      - name: 公证
+        if: env.APPLE_NOTARY_KEY_P8 != '' && env.MACOS_SIGN_IDENTITY != ''
+        run: |
+          echo "$APPLE_NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          V="$(scripts/version.sh)"
+          DMG="out/LemonNote-$V-macos-universal.dmg"
+          xcrun notarytool submit "$DMG" --key "$RUNNER_TEMP/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple "$DMG"
+          # 命令行版没法装订公证票据，提交后由系统联网核验
+          ditto -c -k t/lemon-note "$RUNNER_TEMP/cli.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/cli.zip" --key "$RUNNER_TEMP/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+          rm -f "$RUNNER_TEMP/notary.p8"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: |
+            out/lemon-note-*
+            out/LemonNote-*
+          if-no-files-found: error
+
+  windows:
+    name: Windows 带界面版
+    needs: console
+    runs-on: windows-2025
+    env:
+      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - uses: actions/download-artifact@v8
+        with:
+          name: console-dist
+          path: lemon-note-service/internal/web/dist
+      - name: 准备 NSIS
+        run: |
+          if ! command -v makensis >/dev/null 2>&1 && [ ! -x "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
+            choco install nsis -y --no-progress
+          fi
+          ls "/c/Program Files (x86)/NSIS/makensis.exe" || command -v makensis
+      - name: 导入签名证书
+        if: env.WINDOWS_CERTIFICATE_PFX != ''
+        run: |
+          echo "$WINDOWS_CERTIFICATE_PFX" | base64 --decode > "$RUNNER_TEMP/cert.pfx"
+          echo "WINDOWS_CERT_FILE=$RUNNER_TEMP/cert.pfx" >> "$GITHUB_ENV"
+          echo "WINDOWS_CERT_PASSWORD=$WINDOWS_CERTIFICATE_PASSWORD" >> "$GITHUB_ENV"
+      - name: 编译与打包（amd64、arm64：免安装 zip 与安装包）
+        run: scripts/package-windows.sh out
+      - name: 自测（amd64 程序能加载、安装包与压缩包齐全）
+        run: |
+          V="$(scripts/version.sh)"
+          mkdir -p t && cd t && 7z x -bso0 "../out/LemonNote-$V-windows-amd64.zip"
+          ./LemonNote.exe --version
+          cd ..
+          for a in amd64 arm64; do
+            test -s "out/LemonNote-$V-windows-$a.zip"
+            test -s "out/LemonNote-$V-windows-$a-setup.exe"
+          done
+          ls -l out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: out/LemonNote-*
+          if-no-files-found: error
+
+  linux-gui:
+    name: Linux 带界面版 (${{ matrix.arch }})
+    needs: console
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, arch: amd64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: lemon-note-service/go.sum
+      - uses: actions/download-artifact@v8
+        with:
+          name: console-dist
+          path: lemon-note-service/internal/web/dist
+      - name: 编译依赖（GTK 4、WebKitGTK 6.0）
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev >/dev/null
+      - name: 编译、打 deb 与 AppImage（AppImage 打不出来只警告）
+        run: APPIMAGE=try scripts/package-linux.sh out
+      - name: 安装测试（装上、能加载、文件到位、卸载）
+        run: |
+          dpkg-deb --info out/*.deb
+          dpkg-deb --contents out/*.deb
+          sudo apt-get install -y -qq ./out/lemon-note_*.deb >/dev/null
+          lemon-note-gui --version
+          test -f /usr/share/applications/cn.lemonit.note.desktop
+          test -f /usr/share/icons/hicolor/256x256/apps/cn.lemonit.note.png
+          sudo apt-get remove -y -qq lemon-note >/dev/null
+          ! command -v lemon-note-gui
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-gui-${{ matrix.arch }}
+          path: |
+            out/*.deb
+            out/*.AppImage
+          if-no-files-found: error
+
+  docker:
+    name: Docker 镜像
+    needs: [test, test-db]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: 版本号
+        id: v
+        run: |
+          echo "version=$(scripts/version.sh)" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ steps.v.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      - name: 本机架构构建（自测用）
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: lemon-note-service/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: lemon-note:test
+          build-args: |
+            VERSION=${{ steps.v.outputs.version }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ steps.v.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 自测（非 root 运行、首次设置接口、数据写进 /data）
+        run: |
+          test "$(docker image inspect -f '{{.Config.User}}' lemon-note:test)" = "65532:65532"
+          docker run -d --name ln -p 18686:8686 lemon-note:test
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:18686/api/bootstrap >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://127.0.0.1:18686/api/bootstrap | tee /dev/stderr | grep -q '"data_dir":"/data"'
+          curl -fsS http://127.0.0.1:18686/ | grep -q '<div id="app">'
+          docker exec ln /usr/local/bin/lemon-note version
+          docker stop -t 30 ln
+          docker logs ln
+          docker logs ln 2>&1 | grep -q '已停止'
+          docker rm ln
+      - name: 构建全部架构${{ env.PUSH == 'true' && '并推送' || '（PR 不推送）' }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: lemon-note-service/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.v.outputs.version }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ steps.v.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: 发布
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    needs: [test, test-db, cli, macos, windows, linux-gui, docker]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          path: art
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAC_NOTARIZED: ${{ secrets.MACOS_SIGN_IDENTITY != '' && secrets.APPLE_NOTARY_KEY_P8 != '' }}
+        run: |
+          V="$(scripts/version.sh)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then TAG="$GITHUB_REF_NAME"; else TAG="v$V"; fi
+          mkdir -p out
+          for d in cli macos windows linux-gui-amd64 linux-gui-arm64; do
+            find "art/$d" -maxdepth 1 -type f ! -name SHA256SUMS -exec cp {} out/ \;
+          done
+          (cd out && sha256sum * > SHA256SUMS)
+          cat out/SHA256SUMS
+
+          DL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          row() { [ -f "out/$3" ] && echo "| $1 | $2 | [$3]($DL/$3) |" || true; }
+          PREV="$(git describe --tags --abbrev=0 "$GITHUB_SHA^" 2>/dev/null || true)"
+          {
+            echo "## 下载"
+            echo
+            echo "### 带界面版（个人电脑推荐：托盘常驻，状态窗口里看地址、启停服务、换数据目录）"
+            echo
+            echo "| 用途 | 系统 | 文件 |"
+            echo "|---|---|---|"
+            row "macOS 安装包" "macOS 12 及以上，Apple 芯片 / Intel 通用" "LemonNote-$V-macos-universal.dmg"
+            row "Windows 安装包" "Windows 10 / 11，x64" "LemonNote-$V-windows-amd64-setup.exe"
+            row "Windows 安装包" "Windows 11，ARM64" "LemonNote-$V-windows-arm64-setup.exe"
+            row "Windows 免安装" "Windows 10 / 11，x64" "LemonNote-$V-windows-amd64.zip"
+            row "Windows 免安装" "Windows 11，ARM64" "LemonNote-$V-windows-arm64.zip"
+            row "Linux 安装包" "Ubuntu 24.04、Debian 13 起，x86_64" "lemon-note_${V}_amd64.deb"
+            row "Linux 安装包" "Ubuntu 24.04、Debian 13 起，ARM64" "lemon-note_${V}_arm64.deb"
+            row "Linux AppImage" "GTK 4.14 以上的发行版，x86_64" "LemonNote-$V-linux-amd64.AppImage"
+            row "Linux AppImage" "GTK 4.14 以上的发行版，ARM64" "LemonNote-$V-linux-arm64.AppImage"
+            echo
+            echo "Windows 版需要 Microsoft Edge WebView2 运行时（Windows 11 自带，安装包会检查）。Linux 版托盘图标在 GNOME 上需要 AppIndicator 扩展。"
+            echo
+            echo "### 命令行版（服务器、NAS：单文件，内嵌网页界面，可装成系统服务）"
+            echo
+            echo "| 用途 | 系统 | 文件 |"
+            echo "|---|---|---|"
+            row "服务器" "Linux x86_64" "lemon-note-$V-linux-amd64.tar.gz"
+            row "服务器" "Linux ARM64（树莓派 4/5 64 位系统等）" "lemon-note-$V-linux-arm64.tar.gz"
+            row "服务器" "Linux ARMv7（32 位 ARM）" "lemon-note-$V-linux-armv7.tar.gz"
+            row "服务器" "Linux x86（32 位）" "lemon-note-$V-linux-386.tar.gz"
+            row "服务器" "Linux RISC-V 64" "lemon-note-$V-linux-riscv64.tar.gz"
+            row "服务器" "Linux LoongArch 64（龙芯）" "lemon-note-$V-linux-loong64.tar.gz"
+            row "服务器" "Linux ppc64le" "lemon-note-$V-linux-ppc64le.tar.gz"
+            row "服务器" "Linux s390x" "lemon-note-$V-linux-s390x.tar.gz"
+            row "服务器" "Windows 10 / 11 / Server 2016 起，x64" "lemon-note-$V-windows-amd64.zip"
+            row "服务器" "Windows 11，ARM64" "lemon-note-$V-windows-arm64.zip"
+            row "服务器" "macOS 12 及以上，Apple 芯片 / Intel 通用" "lemon-note-$V-macos-universal.tar.gz"
+            echo
+            echo "### Docker"
+            echo
+            echo '```'
+            echo "docker run -d --name lemon-note -p 8686:8686 -v lemon-note-data:/data -v lemon-note-cache:/cache ghcr.io/lemonitcn/lemon-note:$V"
+            echo '```'
+            echo
+            echo "linux/amd64、linux/arm64，非 root 运行；数据目录 /data，缓存 /cache。"
+            echo
+            echo "### 快速开始"
+            echo
+            echo '1. 带界面版：安装后打开，菜单栏 / 托盘里出现柠檬图标；首次使用在状态窗口里点「打开设置页」，在浏览器里选数据库、创建管理员。'
+            echo '2. 命令行版：解压后运行 `./lemon-note`，按提示在浏览器打开带令牌的首次设置地址；`sudo ./lemon-note service install` 装成开机自启的系统服务（Windows 用管理员 PowerShell 运行 `.\lemon-note.exe service install`）。'
+            echo '3. 默认地址 http://127.0.0.1:8686。数据目录就是全部数据，备份它即可完整恢复。'
+            echo
+            if [ "$MAC_NOTARIZED" != true ]; then
+              echo "macOS 首次打开如果提示无法验证开发者，到「系统设置 → 隐私与安全性」底部点「仍要打开」；命令行版用 \`xattr -d com.apple.quarantine lemon-note\` 去掉隔离标记。"
+              echo
+            fi
+            echo "校验：[SHA256SUMS]($DL/SHA256SUMS)"
+            echo
+            echo "## 更新内容"
+            echo
+            if [ -n "$PREV" ]; then
+              git log --no-merges --format='- %s' "$PREV..$GITHUB_SHA" | head -50
+            else
+              git log --no-merges --format='- %s' "$GITHUB_SHA" | head -50
+            fi
+          } > notes.md
+          cat notes.md
+
+          FLAGS=(--latest)
+          case "$V" in *-*) FLAGS=(--prerelease --latest=false) ;; esac
+          FILES=(out/*)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${FILES[@]}"
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Lemon Note $V" \
+              --notes-file notes.md "${FLAGS[@]}" "${FILES[@]}"
+          fi

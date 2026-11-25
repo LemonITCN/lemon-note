@@ -158,4 +158,3 @@ func (c *controller) autostartOptions() application.AutostartOptions {
 	}
 	return application.AutostartOptions{Identifier: id, Arguments: args}
 }
-

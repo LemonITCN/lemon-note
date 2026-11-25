@@ -1,0 +1,40 @@
+# Lemon Note 的 docker compose 示例。复制成 docker-compose.yml，按需修改后运行：
+#   docker compose up -d
+#   docker compose logs lemon-note     # 首次启动会打印带令牌的首次设置地址
+#
+# 数据卷 data 里是全部数据，备份它就能完整恢复；cache 可以随时删除，启动时自动重建。
+services:
+  lemon-note:
+    image: ghcr.io/lemonitcn/lemon-note:latest
+    container_name: lemon-note
+    restart: unless-stopped
+    ports:
+      - "8686:8686"
+    volumes:
+      - data:/data
+      - cache:/cache
+    environment:
+      TZ: Asia/Shanghai
+      # 通过反向代理或域名访问时填对外地址（MCP 授权、分享链接都用它）
+      # LEMON_NOTE_BASE_URL: https://note.example.com
+      # 只信任这些反向代理传来的 X-Forwarded-For（逗号分隔）
+      # LEMON_NOTE_TRUSTED_PROXIES: 172.16.0.0/12
+      # 用外部数据库当工作库时在这里配置连接串（数据目录仍然是全部数据的来源）
+      # LEMON_NOTE_DSN: postgres://lemon:password@postgres:5432/lemon_note?sslmode=disable
+      # LEMON_NOTE_LOG_LEVEL: info
+
+  # 可选：PostgreSQL 工作库。启用时去掉注释，并设置上面的 LEMON_NOTE_DSN
+  # postgres:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: lemon
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: lemon_note
+  #   volumes:
+  #     - pg:/var/lib/postgresql/data
+
+volumes:
+  data:
+  cache:
+  # pg:

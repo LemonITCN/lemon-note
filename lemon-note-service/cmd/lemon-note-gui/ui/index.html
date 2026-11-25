@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lemon Note</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --faint: #9aa1ad;
+    --line: #e6e8eb;
+    --hover: #f0f1f3;
+    --btn: #ffffff;
+    --btn-line: #d9dce1;
+    --primary: #1f2328;
+    --primary-text: #ffffff;
+    --accent: #e8d44d;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --info: #2563eb;
+    --off: #9aa1ad;
+    --err: #dc2626;
+    --err-bg: #fdf0f0;
+    --err-line: #f6d4d4;
+    --setup-bg: #fbf7dc;
+    --setup-line: #efe39a;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    --pop: #1f2328;
+    --pop-text: #f3f4f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d;
+      --card: #1e2128;
+      --text: #e6e8eb;
+      --muted: #9aa0aa;
+      --faint: #6f7682;
+      --line: #2b2f37;
+      --hover: #262a32;
+      --btn: #23262e;
+      --btn-line: #353a44;
+      --primary: #e8d44d;
+      --primary-text: #1f2328;
+      --err-bg: #2a1c1e;
+      --err-line: #4a2a2e;
+      --setup-bg: #2a2716;
+      --setup-line: #4a4420;
+      --shadow: none;
+      --pop: #f3f4f6;
+      --pop-text: #1f2328;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+  }
+  .wrap { display: flex; flex-direction: column; min-height: 100%; padding: 20px 20px 0; gap: 14px; }
+  svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  header { display: flex; align-items: center; gap: 12px; }
+  header .logo { width: 40px; height: 40px; flex: none; }
+  header .name { font-size: 16px; font-weight: 600; letter-spacing: .01em; }
+  header .ver { color: var(--muted); font-size: 12px; }
+  header .grow { flex: 1; min-width: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 9px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--off); }
+  .pill[data-s="running"] .dot { background: var(--ok); }
+  .pill[data-s="setup"] .dot { background: var(--warn); }
+  .pill[data-s="busy"] .dot { background: var(--info); animation: pulse 1.2s ease-in-out infinite; }
+  .pill[data-s="error"] .dot { background: var(--err); }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .banner { display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px; border-radius: 10px; }
+  .banner.err { background: var(--err-bg); border: 1px solid var(--err-line); }
+  .banner.err > svg { color: var(--err); margin-top: 1px; }
+  .banner.setup { background: var(--setup-bg); border: 1px solid var(--setup-line); align-items: center; }
+  .banner .msg { flex: 1; min-width: 0; word-break: break-word; -webkit-user-select: text; user-select: text; }
+  .banner .acts { display: flex; gap: 6px; flex: none; }
+
+  .addr { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; }
+  .label { color: var(--muted); font-size: 12px; display: inline-flex; align-items: center; gap: 4px; position: relative; }
+  .addr .body { flex: 1; min-width: 0; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12.5px; -webkit-user-select: text; user-select: text; cursor: text; }
+  .addr .mono { font-size: 14px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .muted { color: var(--faint); }
+
+  .rows .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border-top: 1px solid var(--line); min-height: 52px; }
+  .rows .row:first-child { border-top: none; }
+  .row .body { flex: 1; min-width: 0; }
+  .row .path { display: block; word-break: break-all; line-height: 1.45; }
+  .row .acts { display: flex; gap: 6px; flex: none; }
+
+  button {
+    font: inherit; color: var(--text); background: var(--btn); border: 1px solid var(--btn-line);
+    height: 28px; padding: 0 10px; border-radius: 7px; display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: var(--hover); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.icon { width: 28px; padding: 0; justify-content: center; }
+  button.primary { background: var(--primary); color: var(--primary-text); border-color: transparent; }
+  button.primary:hover:not(:disabled) { background: var(--primary); filter: brightness(1.12); }
+  button.big { height: 32px; padding: 0 14px; }
+  button.danger { color: var(--err); }
+
+  .tip { width: 16px; height: 16px; border: none; background: none; padding: 0; color: var(--faint); border-radius: 50%; }
+  .tip:hover:not(:disabled) { background: none; color: var(--text); }
+  .tip svg.i { width: 14px; height: 14px; }
+  .pop {
+    position: absolute; top: calc(100% + 6px); left: -6px; z-index: 20; width: 260px;
+    background: var(--pop); color: var(--pop-text); padding: 9px 11px; border-radius: 8px; font-size: 12px; line-height: 1.55;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .18); display: none; white-space: normal;
+  }
+  .pop.open { display: block; }
+
+  footer {
+    margin: auto -20px 0; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--card);
+    display: flex; align-items: center; gap: 8px;
+  }
+  footer .grow { flex: 1; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); }
+  .switch input { display: none; }
+  .switch .track { width: 32px; height: 18px; border-radius: 999px; background: var(--btn-line); position: relative; transition: background .15s; }
+  .switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .switch input:checked + .track { background: var(--ok); }
+  .switch input:checked + .track::after { transform: translateX(14px); }
+  .switch.disabled { opacity: .45; cursor: default; }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0, 0, 0, .32); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+  .modal-bg.open { display: flex; }
+  .modal { width: 100%; max-width: 420px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .modal h3 { margin: 0; font-size: 14px; font-weight: 600; }
+  .modal .mono { display: block; padding: 9px 10px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); word-break: break-all; }
+  .modal .acts { display: flex; justify-content: flex-end; gap: 8px; }
+  .tag { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%) translateY(8px); opacity: 0; pointer-events: none;
+    background: var(--pop); color: var(--pop-text); padding: 8px 12px; border-radius: 8px; font-size: 12.5px; max-width: calc(100% - 40px);
+    transition: opacity .15s, transform .15s; z-index: 60;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 7h12l-3-3"/><path d="M17 17H5l3 3"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.1"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.4v.1"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M17 6l3 3"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#1f2328"/><path d="M20 44c-4-12 2-24 14-26 7-1 12 3 12 3s1 8-4 15c-6 8-15 11-22 8z" fill="#e8d44d"/><path d="M22 42c6-6 12-12 20-19" stroke="#1f2328" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+    <div class="grow">
+      <div class="name">Lemon Note</div>
+      <div class="ver" id="ver"></div>
+    </div>
+    <div class="pill" id="pill" data-s="stopped"><span class="dot"></span><span id="state"></span></div>
+  </header>
+
+  <div class="banner err" id="errBox" hidden>
+    <svg class="i"><use href="#i-alert"/></svg>
+    <div class="msg" id="errMsg"></div>
+    <div class="acts">
+      <button id="btnTakeover" class="danger" hidden><svg class="i"><use href="#i-key"/></svg><span data-t="takeover"></span></button>
+      <button id="btnConfigDir" hidden><svg class="i"><use href="#i-folder"/></svg><span data-t="openConfigDir"></span></button>
+    </div>
+  </div>
+
+  <div class="banner setup" id="setupBox" hidden>
+    <div class="msg">
+      <div class="label" data-t="setupTitle"></div>
+      <div class="mono" id="setupUrl" style="word-break: break-all"></div>
+    </div>
+    <div class="acts">
+      <button class="icon" id="btnCopySetup" data-tt="copy"><svg class="i"><use href="#i-copy"/></svg></button>
+      <button class="primary" id="btnOpenSetup"><svg class="i"><use href="#i-ext"/></svg><span data-t="openSetup"></span></button>
+    </div>
+  </div>
+
+  <div class="card addr">
+    <div class="body">
+      <div class="label" data-t="address"></div>
+      <span class="mono" id="url"></span>
+    </div>
+    <button class="icon" id="btnCopy" data-tt="copy"><svg class="i"><use href="#i-copy"/></svg></button>
+    <button id="btnOpen"><svg class="i"><use href="#i-ext"/></svg><span data-t="open"></span></button>
+  </div>
+
+  <div class="card rows">
+    <div class="row">
+      <div class="body">
+        <div class="label"><span data-t="dataDir"></span>
+          <button class="tip" data-pop="popData"><svg class="i"><use href="#i-info"/></svg></button>
+          <div class="pop" id="popData" data-t="dataDirTip"></div>
+        </div>
+        <span class="mono path" id="dataDir"></span>
+      </div>
+      <div class="acts">
+        <button id="btnOpenData" data-tt="openDataDir"><svg class="i"><use href="#i-folder"/></svg><span data-t="openFolder"></span></button>
+        <button id="btnChange"><svg class="i"><use href="#i-swap"/></svg><span data-t="change"></span></button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="body">
+        <div class="label"><span data-t="cacheDir"></span>
+          <button class="tip" data-pop="popCache"><svg class="i"><use href="#i-info"/></svg></button>
+          <div class="pop" id="popCache" data-t="cacheDirTip"></div>
+        </div>
+        <span class="mono path" id="cacheDir"></span>
+      </div>
+      <div class="acts">
+        <button id="btnLogs"><svg class="i"><use href="#i-log"/></svg><span data-t="logs"></span></button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="body">
+        <div class="label"><span data-t="configFile"></span>
+          <button class="tip" data-pop="popConfig"><svg class="i"><use href="#i-info"/></svg></button>
+          <div class="pop" id="popConfig" data-t="configFileTip"></div>
+        </div>
+        <span class="mono path" id="configPath"></span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="primary big" id="btnStart"><svg class="i"><use href="#i-play"/></svg><span data-t="start"></span></button>
+    <button class="big" id="btnStop"><svg class="i"><use href="#i-stop"/></svg><span data-t="stop"></span></button>
+    <div class="grow"></div>
+    <label class="switch" id="autoWrap"><input type="checkbox" id="auto"><span class="track"></span><span data-t="autostart"></span></label>
+  </footer>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="card modal">
+    <h3 id="mTitle"></h3>
+    <span class="mono" id="mPath" hidden></span>
+    <div id="mTagWrap" hidden><span class="tag" id="mTag"></span></div>
+    <div class="muted" id="mNote"></div>
+    <div class="acts">
+      <button id="mCancel" data-t="cancel"></button>
+      <button class="primary" id="mOk"></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const T = {
+  zh: {
+    address: '访问地址', open: '打开', copy: '复制', copied: '已复制',
+    setupTitle: '首次设置地址（带一次性令牌）', openSetup: '打开设置页',
+    dataDir: '数据目录', cacheDir: '缓存目录', configFile: '配置文件',
+    dataDirTip: '全部笔记数据都在这里，备份它就能完整恢复。可以放在 OneDrive、iCloud 等同步盘里，但同一时间只在一台电脑上运行。',
+    cacheDirTip: '工作数据库、搜索索引、缩略图和日志。可以随时删除，启动时会从数据目录自动重建。',
+    configFileTip: '记录数据目录位置、监听地址等本机设置，不要放进同步盘。',
+    openFolder: '打开', openDataDir: '打开数据目录', change: '更换', logs: '查看日志',
+    start: '启动', stop: '停止', autostart: '开机自启',
+    takeover: '强制接管', openConfigDir: '打开配置目录',
+    changeTitle: '更换数据目录', changeNote: '服务会先停止，切换后自动重新启动。',
+    kindExisting: '已有的 Lemon Note 数据', kindEmpty: '新目录，启动后在浏览器里完成首次设置',
+    cancel: '取消', confirmChange: '切换',
+    takeoverConfirm: '另一台电脑可能还在使用这个数据目录，同时运行会造成数据冲突。确认那台电脑已经停止后再接管。',
+    st: { running: '运行中', setup: '等待首次设置', starting: '正在启动', stopping: '正在停止', switching: '正在切换', stopped: '已停止', error: '出错' },
+    version: '版本',
+  },
+  en: {
+    address: 'Address', open: 'Open', copy: 'Copy', copied: 'Copied',
+    setupTitle: 'First-time setup (one-time token)', openSetup: 'Open Setup',
+    dataDir: 'Data folder', cacheDir: 'Cache folder', configFile: 'Config file',
+    dataDirTip: 'All your notes live here; back it up to restore everything. It can sit in a sync folder such as OneDrive or iCloud, as long as only one computer runs it at a time.',
+    cacheDirTip: 'Working database, search index, thumbnails and logs. Safe to delete at any time; it is rebuilt from the data folder on start.',
+    configFileTip: 'Machine-local settings such as the data folder location and listen address. Keep it out of sync folders.',
+    openFolder: 'Open', openDataDir: 'Open data folder', change: 'Change', logs: 'Logs',
+    start: 'Start', stop: 'Stop', autostart: 'Launch at login',
+    takeover: 'Take over', openConfigDir: 'Open config folder',
+    changeTitle: 'Change data folder', changeNote: 'The service stops, switches, and starts again.',
+    kindExisting: 'Existing Lemon Note data', kindEmpty: 'New folder: finish setup in the browser after start',
+    cancel: 'Cancel', confirmChange: 'Switch',
+    takeoverConfirm: 'Another computer may still be using this data folder, and running both at once corrupts data. Take over only after that computer has stopped.',
+    st: { running: 'Running', setup: 'Waiting for setup', starting: 'Starting', stopping: 'Stopping', switching: 'Switching', stopped: 'Stopped', error: 'Error' },
+    version: 'Version',
+  },
+};
+const $ = (id) => document.getElementById(id);
+let S = null, gen = 0, lang = '';
+const t = (k) => (T[lang] || T.en)[k];
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll('[data-tt]').forEach((el) => { el.title = t(el.dataset.tt); });
+}
+
+function render() {
+  if (!S) return;
+  if (S.lang !== lang) { lang = S.lang; applyLang(); }
+  const busy = !!S.busy;
+  const up = S.state === 'running' || S.state === 'setup';
+  const pill = busy || S.state === 'starting' ? 'busy' : S.state;
+  $('pill').dataset.s = pill;
+  $('state').textContent = busy ? t('st')[S.busy] : t('st')[S.state];
+  $('ver').textContent = t('version') + ' ' + S.version;
+  $('ver').title = [S.commit && S.commit.slice(0, 12), S.build_date].filter(Boolean).join('  ');
+
+  const err = S.error || S.last_error || S.autostart_error || '';
+  $('errBox').hidden = !err;
+  $('errMsg').textContent = err;
+  $('btnTakeover').hidden = !S.owned_elsewhere || busy;
+  $('btnConfigDir').hidden = !(S.state === 'error' && /配置|config|toml/i.test(S.error || ''));
+
+  $('setupBox').hidden = S.state !== 'setup' || !S.setup_url;
+  $('setupUrl').textContent = S.setup_url || '';
+
+  $('url').textContent = S.url || '';
+  $('url').classList.toggle('muted', !up);
+  $('btnOpen').disabled = busy;
+  $('btnCopy').disabled = !S.url;
+
+  $('dataDir').textContent = S.data_dir || '';
+  $('cacheDir').textContent = S.cache_dir || '';
+  $('configPath').textContent = S.config_path || '';
+  $('btnChange').disabled = busy || S.data_dir_locked;
+
+  $('btnStart').disabled = busy || !(S.state === 'stopped' || S.state === 'error');
+  $('btnStop').disabled = busy || !(up || S.state === 'starting');
+  $('auto').checked = !!S.autostart;
+}
+
+async function poll() {
+  for (;;) {
+    try {
+      const r = await fetch('/api/status' + (S ? '?since=' + gen : ''), { cache: 'no-store' });
+      S = await r.json();
+      gen = S.gen;
+      render();
+    } catch (e) {
+      await new Promise((ok) => setTimeout(ok, 1500));
+    }
+  }
+}
+
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+async function act(name, body) {
+  try {
+    const r = await fetch('/api/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    const j = await r.json();
+    if (j.error) { toast(j.error); return null; }
+    return j;
+  } catch (e) {
+    toast(String(e));
+    return null;
+  }
+}
+
+async function copy(text) {
+  if (text && await act('copy', { text })) toast(t('copied'));
+}
+
+$('btnOpen').onclick = () => act('open');
+$('btnOpenSetup').onclick = () => act('open');
+$('btnCopy').onclick = () => copy(S && S.url);
+$('btnCopySetup').onclick = () => copy(S && S.setup_url);
+$('btnOpenData').onclick = () => act('open-data-dir');
+$('btnLogs').onclick = () => act('open-logs');
+$('btnConfigDir').onclick = () => act('open-config-dir');
+$('btnStart').onclick = () => act('start');
+$('btnStop').onclick = () => act('stop');
+$('auto').onchange = (e) => act('autostart', { enabled: e.target.checked });
+
+// 确认框（网页里的 confirm() 在部分系统的内嵌浏览器里不可用，自己画）
+let answer = null;
+function ask(o) {
+  $('mTitle').textContent = o.title;
+  $('mPath').hidden = !o.path;
+  $('mPath').textContent = o.path || '';
+  $('mTagWrap').hidden = !o.tag;
+  $('mTag').textContent = o.tag || '';
+  $('mNote').textContent = o.note || '';
+  $('mOk').textContent = o.ok;
+  $('mOk').className = o.danger ? 'danger' : 'primary';
+  $('modal').classList.add('open');
+  return new Promise((ok) => { answer = ok; });
+}
+function closeAsk(v) {
+  $('modal').classList.remove('open');
+  if (answer) { const a = answer; answer = null; a(v); }
+}
+$('mCancel').onclick = () => closeAsk(false);
+$('mOk').onclick = () => closeAsk(true);
+
+$('btnTakeover').onclick = async () => {
+  if (await ask({ title: t('takeover'), note: t('takeoverConfirm'), ok: t('takeover'), danger: true })) act('takeover');
+};
+$('btnChange').onclick = async () => {
+  const j = await act('data-dir/choose');
+  if (!j || j.canceled) return;
+  const tag = j.kind === 'existing' ? t('kindExisting') : t('kindEmpty');
+  if (await ask({ title: t('changeTitle'), path: j.path, tag, note: t('changeNote'), ok: t('confirmChange') })) {
+    act('data-dir/apply', { path: j.path });
+  }
+};
+
+// i 图标：点开说明，点别处收起
+document.addEventListener('click', (e) => {
+  const tip = e.target.closest('.tip');
+  document.querySelectorAll('.pop.open').forEach((p) => { if (!tip || p.id !== tip.dataset.pop) p.classList.remove('open'); });
+  if (tip) $(tip.dataset.pop).classList.toggle('open');
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.pop.open').forEach((p) => p.classList.remove('open'));
+    closeAsk(false);
+  }
+});
+document.addEventListener('contextmenu', (e) => { if (!e.target.closest('.mono')) e.preventDefault(); });
+
+lang = (navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+applyLang();
+poll();
+</script>
+</body>
+</html>

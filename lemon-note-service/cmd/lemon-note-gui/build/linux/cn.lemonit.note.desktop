@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Lemon Note
+GenericName=Notes
+GenericName[zh_CN]=笔记
+Comment=Self-hosted notes, databases and AI agent
+Comment[zh_CN]=私有化部署的笔记、数据库与智能体
+Exec=lemon-note-gui
+Icon=cn.lemonit.note
+Terminal=false
+Categories=Office;Utility;
+Keywords=note;notes;wiki;markdown;笔记;
+StartupNotify=false
+StartupWMClass=cn.lemonit.note

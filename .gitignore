@@ -5,10 +5,15 @@ lemon-note-console/dist/
 lemon-note-service/internal/web/dist/*
 !lemon-note-service/internal/web/dist/.keep
 lemon-note-service/bin/
-lemon-note-service/gui/build/bin/
 *.local
 .env
 .env.*
 public/excalidraw-assets/
 lemon-note-service/lemon-note
 *.exe
+# 构建脚本的输出（scripts/build-all.sh、package-*.sh）与 Windows 资源中间文件
+/dist/
+*.syso
+*.dmg
+*.deb
+*.AppImage
