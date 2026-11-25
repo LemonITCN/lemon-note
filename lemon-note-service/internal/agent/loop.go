@@ -162,7 +162,11 @@ func (s *Service) execute(run *Run, user *model.User) {
 		}
 		system := s.systemPrompt(ctx, env, conv, currentPage, "")
 		toolList := s.registry.List(s.toolSvc, true, conv.Cfg.Mode != ModePlan)
-		req := llm.Request{Model: mdl.ID, System: system, Messages: toLLM(conv, msgs), Tools: tools.Defs(toolList), Effort: conv.Cfg.Effort, SessionID: conv.ID}
+		lmsgs := toLLM(conv, msgs)
+		if !mdl.Vision {
+			lmsgs = stripImages(lmsgs)
+		}
+		req := llm.Request{Model: mdl.ID, System: system, Messages: lmsgs, Tools: tools.Defs(toolList), Effort: conv.Cfg.Effort, SessionID: conv.ID}
 		asst, usage, stop, err := s.streamStep(ctx, run, prov, req)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -208,7 +212,7 @@ func (s *Service) execute(run *Run, user *model.User) {
 			}
 			return
 		}
-		results := s.runTools(ctx, run, env, conv, calls, toolList)
+		results := s.runTools(ctx, run, env, conv, calls, toolList, mdl.Vision)
 		tmsg, err := s.appendMessage(context.WithoutCancel(ctx), conv, "tool", results, nil)
 		if err != nil {
 			status, errMsg = "error", err.Error()
@@ -349,12 +353,13 @@ func needsApproval(mode string, t *tools.Tool, conv *Conversation) bool {
 }
 
 // runTools 执行一批工具调用：只读工具并发（最多 4 个），写入工具按顺序。
-func (s *Service) runTools(ctx context.Context, run *Run, env *tools.Env, conv *Conversation, calls []llm.Part, allowed []*tools.Tool) []StoredPart {
+func (s *Service) runTools(ctx context.Context, run *Run, env *tools.Env, conv *Conversation, calls []llm.Part, allowed []*tools.Tool, vision bool) []StoredPart {
 	allowedSet := map[string]*tools.Tool{}
 	for _, t := range allowed {
 		allowedSet[t.Name] = t
 	}
 	results := make([]StoredPart, len(calls))
+	images := make([][]StoredPart, len(calls))
 	exec := func(i int) {
 		c := calls[i]
 		start := time.Now()
@@ -391,6 +396,16 @@ func (s *Service) runTools(ctx context.Context, run *Run, env *tools.Env, conv *
 			}
 		}
 		text := res.Text
+		if len(res.Images) > 0 {
+			if vision {
+				for _, img := range res.Images {
+					img.CallID = c.CallID
+					images[i] = append(images[i], StoredPart{Part: img, Hidden: true})
+				}
+			} else {
+				text += fmt.Sprintf("\n（结果里有 %d 张图片，当前模型不支持看图，没有提供给你）", len(res.Images))
+			}
+		}
 		if len(text) > maxToolResultChars {
 			text = text[:maxToolResultChars] + "\n…（结果过长已截断）"
 		}
@@ -435,8 +450,9 @@ func (s *Service) runTools(ctx context.Context, run *Run, env *tools.Env, conv *
 	}
 	// 工具结果里的图片随结果一起给模型
 	var out []StoredPart
-	for _, r := range results {
+	for i, r := range results {
 		out = append(out, r)
+		out = append(out, images[i]...)
 	}
 	return out
 }
@@ -517,4 +533,29 @@ func (s *Service) RevertCheckpoint(ctx context.Context, user *model.User, ckptID
 	ck.RevertedAt = &now
 	_, err := s.st.Write(ctx, user.ID, func(tx *store.Tx) error { return tx.Put("agent_checkpoints", ck) })
 	return n, err
+}
+
+// stripImages 当前模型不支持看图时，把图片换成文字说明（否则供应商会直接报错）。
+func stripImages(msgs []llm.Message) []llm.Message {
+	out := make([]llm.Message, 0, len(msgs))
+	for _, m := range msgs {
+		n := 0
+		parts := make([]llm.Part, 0, len(m.Parts))
+		for _, p := range m.Parts {
+			if p.Type == "image" {
+				n++
+				continue
+			}
+			parts = append(parts, p)
+		}
+		if n > 0 && m.Role == llm.RoleUser {
+			parts = append(parts, llm.Part{Type: "text", Text: fmt.Sprintf("（附带了 %d 张图片，当前模型不支持看图，已省略）", n)})
+		}
+		if len(parts) == 0 {
+			continue
+		}
+		m.Parts = parts
+		out = append(out, m)
+	}
+	return out
 }

@@ -155,7 +155,7 @@ func (s *Service) runSub(ctx context.Context, run *Run, user *userT, conv *Conve
 			}
 			return out, nil
 		}
-		stored := s.runTools(ctx, run, env, &subConv, calls, list)
+		stored := s.runTools(ctx, run, env, &subConv, calls, list, false) // 子智能体不传图片，图片结果换成文字说明
 		var res []llm.Part
 		for _, sp := range stored {
 			res = append(res, sp.Part)
