@@ -7,6 +7,7 @@ export const router = createRouter({
   routes: [
     { path: '/setup', name: 'setup', component: () => import('./views/SetupView.vue') },
     { path: '/share/:token/:pageId?', name: 'share', component: () => import('./views/PublicView.vue'), props: true },
+    { path: '/oauth/authorize', name: 'oauth', component: () => import('./views/OAuthConsent.vue') },
     { path: '/login', name: 'login', component: () => import('./views/LoginView.vue') },
     { path: '/register', name: 'register', component: () => import('./views/LoginView.vue'), props: { register: true } },
     {

@@ -13,6 +13,10 @@ export default defineConfig({
       '/api/ws': { target, ws: true, changeOrigin: false },
       '/api': { target, changeOrigin: false },
       '/mcp': { target, changeOrigin: false },
+      '/.well-known': { target, changeOrigin: false },
+      '/oauth/register': { target, changeOrigin: false },
+      '/oauth/token': { target, changeOrigin: false },
+      '/oauth/revoke': { target, changeOrigin: false },
     },
   },
   build: {

@@ -92,8 +92,16 @@ export default {
     empty: '还没有评论', pageComment: '页面讨论', resolve: '标记为已解决', reopen: '重新打开', resolvedBy: '{name} 标记为已解决',
     showResolved: '已解决', edited: '已编辑', deleteTitle: '删除评论',
   },
+  oauth: {
+    title: '授权访问', invalid: '授权请求无效', done: '已完成，可以回到客户端了。', lead: '{app} 想以 {user} 的身份访问你在 Lemon Note 里的笔记。',
+    read: '读取页面、数据库与评论', write: '允许修改', writeTip: '允许新建、修改、移动和删除页面与数据库内容。不需要时关掉，客户端只能读取。',
+    allSpaces: '全部空间', spacesTip: '关掉后可以只允许访问选中的空间。', deny: '拒绝', allow: '允许',
+    grants: '已授权的应用', grantsTip: '通过 OAuth 授权接入的 MCP 客户端。撤销后客户端需要重新授权。', noGrants: '还没有授权过任何应用',
+    revoke: '撤销授权', someSpaces: '{n} 个空间',
+  },
   roles: { owner: '所有者', admin: '管理员', editor: '可编辑', commenter: '可评论', viewer: '可查看' },
   audit: {
+    oauth_authorized: '授权应用访问', oauth_revoked: '撤销应用授权',
     share_user_set: '分享给用户', share_user_removed: '移除分享', share_public_set: '设置公开链接', share_public_removed: '取消公开链接', share_public_rotated: '重置公开链接',
     login: '登录', login_failed: '登录失败', mfa_enabled: '启用两步验证', mfa_disabled: '关闭两步验证', mfa_failed: '两步验证失败', page_purged: '彻底删除页面',
     password_changed: '修改口令', recovery_codes_regenerated: '重新生成恢复码', register: '注册', session_revoked: '注销登录设备', sessions_revoked_others: '注销其他设备',

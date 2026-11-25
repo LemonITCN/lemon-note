@@ -38,7 +38,7 @@ func Handler(svc *tools.Services, auth Auth, resourceMetadataURL func(r *http.Re
 		a, ok := auth(r)
 		if !ok {
 			w.Header().Set("WWW-Authenticate", `Bearer resource_metadata="`+resourceMetadataURL(r)+`"`)
-			web.WriteJSON(w, 401, map[string]any{"error": "unauthorized", "error_description": "需要访问令牌：在 Lemon Note 设置 → 访问令牌里创建"})
+			web.WriteJSON(w, 401, map[string]any{"error": "unauthorized", "error_description": "需要授权：按客户端提示在浏览器里登录 Lemon Note 并允许访问，或在设置 → 访问令牌里创建令牌"})
 			return
 		}
 		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, a)))

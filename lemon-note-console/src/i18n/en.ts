@@ -92,8 +92,16 @@ export default {
     empty: 'No comments yet', pageComment: 'Page discussion', resolve: 'Resolve', reopen: 'Reopen', resolvedBy: 'Resolved by {name}',
     showResolved: 'Resolved', edited: 'edited', deleteTitle: 'Delete comment',
   },
+  oauth: {
+    title: 'Authorize access', invalid: 'Invalid authorization request', done: 'Done. You can return to the client now.', lead: '{app} wants to access your Lemon Note notes as {user}.',
+    read: 'Read pages, databases and comments', write: 'Allow changes', writeTip: 'Create, edit, move and delete pages and database content. Turn off to give read-only access.',
+    allSpaces: 'All spaces', spacesTip: 'Turn off to allow only the selected spaces.', deny: 'Deny', allow: 'Allow',
+    grants: 'Authorized apps', grantsTip: 'MCP clients connected through OAuth. After revoking, the client must authorize again.', noGrants: 'No apps authorized yet',
+    revoke: 'Revoke', someSpaces: '{n} spaces',
+  },
   roles: { owner: 'Owner', admin: 'Admin', editor: 'Can edit', commenter: 'Can comment', viewer: 'Can view' },
   audit: {
+    oauth_authorized: 'Authorized an app', oauth_revoked: 'Revoked an app',
     share_user_set: 'Shared with user', share_user_removed: 'Removed share', share_public_set: 'Updated public link', share_public_removed: 'Unpublished', share_public_rotated: 'Reset public link',
     login: 'Signed in', login_failed: 'Sign-in failed', mfa_enabled: 'Enabled two-step verification', mfa_disabled: 'Disabled two-step verification', mfa_failed: 'Two-step verification failed', page_purged: 'Permanently deleted page',
     password_changed: 'Changed password', recovery_codes_regenerated: 'Regenerated recovery codes', register: 'Registered', session_revoked: 'Signed out a device', sessions_revoked_others: 'Signed out other devices',

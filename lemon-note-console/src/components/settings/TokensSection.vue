@@ -25,9 +25,16 @@ const spaces = ref<string[]>([])
 const created = ref('')
 const mcpURL = computed(() => location.origin + '/mcp')
 const cmd = computed(() => `claude mcp add --transport http lemon-note ${mcpURL.value} --header "Authorization: Bearer ${created.value || '<令牌>'}"`)
+const oauthCmd = computed(() => `claude mcp add --transport http lemon-note ${mcpURL.value}`)
+const grants = ref<any[]>([])
+async function loadGrants() { try { grants.value = (await api.get('/api/me/oauth-grants')).grants } catch {} }
+async function revokeGrant(g: any) {
+  if (!(await confirmDialog({ title: t('oauth.revoke'), message: g.name, danger: true }))) return
+  try { await api.del(`/api/me/oauth-grants/${encodeURIComponent(g.client_id)}`); await loadGrants() } catch (e) { toast.error(errorText(e)) }
+}
 
 async function load() { try { list.value = (await api.get('/api/me/tokens')).tokens } catch {} }
-onMounted(load)
+onMounted(() => { load(); loadGrants() })
 
 async function create() {
   try {
@@ -50,6 +57,7 @@ function spaceName(id: string) { return ws.spaces.find((s) => s.space.id === id)
 <template>
   <Section :title="t('settings.tokens')" :tip="t('settings.mcpTip')">
     <div class="mcp"><span class="ml">MCP</span><code>{{ mcpURL }}</code><IconBtn icon="copy" :size="15" :label="t('common.copy')" @click="copy(mcpURL)" /></div>
+    <div class="mcp"><span class="ml">Claude Code</span><code>{{ oauthCmd }}</code><IconBtn icon="copy" :size="15" :label="t('common.copy')" @click="copy(oauthCmd)" /></div>
     <div v-for="x in list" :key="x.id" class="tok">
       <div class="ti">
         <div class="tn">{{ x.name }}<span class="badge">{{ x.write ? t('settings.readWrite') : t('settings.readOnly') }}</span></div>
@@ -58,6 +66,16 @@ function spaceName(id: string) { return ws.spaces.find((s) => s.space.id === id)
       <Btn size="sm" variant="ghost" @click="revoke(x.id, x.name)">{{ t('settings.revoke') }}</Btn>
     </div>
     <div><Btn size="sm" variant="primary" icon="plus" @click="open = true; created = ''">{{ t('settings.newToken') }}</Btn></div>
+  </Section>
+  <Section :title="t('oauth.grants')" :tip="t('oauth.grantsTip')">
+    <div v-if="!grants.length" class="tm">{{ t('oauth.noGrants') }}</div>
+    <div v-for="g in grants" :key="g.client_id" class="tok">
+      <div class="ti">
+        <div class="tn">{{ g.name }}<span class="badge">{{ g.write ? t('settings.readWrite') : t('settings.readOnly') }}</span></div>
+        <div class="tm">{{ g.spaces ? t('oauth.someSpaces', { n: g.spaces }) : t('settings.allSpaces') }} · {{ formatRelative(g.last_used) }}</div>
+      </div>
+      <Btn size="sm" variant="ghost" @click="revokeGrant(g)">{{ t('oauth.revoke') }}</Btn>
+    </div>
   </Section>
   <Modal v-model:open="open" :title="t('settings.newToken')" :width="520">
     <div v-if="!created" class="form">
