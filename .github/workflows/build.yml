@@ -166,7 +166,7 @@ jobs:
         run: |
           V="$(scripts/version.sh)"
           mkdir -p t
-          tar -C t -xzf "out/lemon-note-$V-linux-amd64.tar.gz"
+          tar -xzf "$PWD/out/lemon-note-$V-linux-amd64.tar.gz" -C t
           t/lemon-note version
           t/lemon-note serve --config "$PWD/t/lemon-note.toml" --data-dir "$PWD/t/data" --cache-dir "$PWD/t/cache" --listen 127.0.0.1:18686 > t/serve.log 2>&1 &
           PID=$!
@@ -229,7 +229,8 @@ jobs:
         run: |
           OUT=out scripts/build-all.sh darwin
           V="$(scripts/version.sh)"
-          mkdir -p t && tar -C t -xzf "out/lemon-note-$V-macos-universal.tar.gz"
+          # bsdtar 先处理 -C 再打开归档，归档要用绝对路径
+          mkdir -p t && tar -xzf "$PWD/out/lemon-note-$V-macos-universal.tar.gz" -C t
           lipo -info t/lemon-note
           codesign --verify --verbose=2 t/lemon-note
           t/lemon-note version
@@ -364,7 +365,7 @@ jobs:
           test -f /usr/share/applications/cn.lemonit.note.desktop
           test -f /usr/share/icons/hicolor/256x256/apps/cn.lemonit.note.png
           sudo apt-get remove -y -qq lemon-note >/dev/null
-          ! command -v lemon-note-gui
+          test ! -e /usr/bin/lemon-note-gui  # 不用 command -v：bash 会返回执行过的命令的缓存路径
       - uses: actions/upload-artifact@v7
         with:
           name: linux-gui-${{ matrix.arch }}
