@@ -41,6 +41,7 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/tools"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/version"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/web"
+	_ "github.com/LemonITCN/lemon-note/lemon-note-service/internal/whiteboard" // 注册白板工具
 )
 
 // State 运行状态。
