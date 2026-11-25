@@ -641,6 +641,9 @@ func (in *Instance) Hold() func() {
 	return func() { once.Do(func() { in.holds.Add(-1) }) }
 }
 
+// Held 表示当前有备份正在进行（持有租约）。
+func (in *Instance) Held() bool { return in.holds.Load() > 0 }
+
 // Flush 立即封存外箱（备份前、退出前调用）。
 func (in *Instance) Flush(ctx context.Context) error { return in.SealPending(ctx) }
 

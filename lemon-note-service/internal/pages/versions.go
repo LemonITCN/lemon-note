@@ -109,6 +109,9 @@ func (s *Service) VersionDoc(ctx context.Context, pageID, versionID string) (*Pa
 	return d, nil
 }
 
+// VersionJSON 返回历史版本解压后的原始 JSON（附件回收扫描引用用）。
+func VersionJSON(data []byte) ([]byte, error) { return zdec.DecodeAll(data, nil) }
+
 func decodeVersion(data []byte) (*versionData, error) {
 	raw, err := zdec.DecodeAll(data, nil)
 	if err != nil {
