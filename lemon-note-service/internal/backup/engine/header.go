@@ -286,13 +286,18 @@ func getBytes(ctx context.Context, t target.Target, path string, key []byte, lim
 func decryptErr(path string, err error) error {
 	switch {
 	case errors.Is(err, cryptstream.ErrNotEncrypted):
-		return uerrf("「%s」不是加密文件，但目标设置为加密，目标上的文件可能被替换过", path)
+		return &Error{msg: fmt.Sprintf("「%s」不是加密文件，但目标设置为加密，目标上的文件可能被替换过", path), err: err}
 	case errors.Is(err, cryptstream.ErrCorrupt):
-		return uerrf("「%s」解密失败：文件已损坏、被篡改或不完整", path)
+		return &Error{msg: fmt.Sprintf("「%s」解密失败：文件已损坏、被篡改或不完整", path), err: err}
 	case errors.Is(err, cryptstream.ErrUnsupportedVersion):
-		return uerrf("「%s」的加密格式版本不受支持，请升级程序", path)
+		return &Error{msg: fmt.Sprintf("「%s」的加密格式版本不受支持，请升级程序", path), err: err}
 	}
 	return err
+}
+
+// isCorruptErr 判断是不是文件内容损坏（解密失败、不是加密文件），而不是读取本身失败（网络、权限）。
+func isCorruptErr(err error) bool {
+	return errors.Is(err, cryptstream.ErrCorrupt) || errors.Is(err, cryptstream.ErrNotEncrypted)
 }
 
 // putBytes 写一个小文件（可选加密）。

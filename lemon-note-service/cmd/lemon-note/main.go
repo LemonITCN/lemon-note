@@ -69,6 +69,8 @@ func usage() {
   lemon-note service <命令> [选项]   install | uninstall | start | stop | restart | status
   lemon-note admin <命令> [选项]     reset-password <用户名> | reset-2fa <用户名> | list-users
   lemon-note doctor [选项]           检查数据目录完整性
+  lemon-note backup <命令> [选项]    list [<目标>] | run <目标> | restore <目标> <备份名> --to <新目录> | verify <目标> <备份名>
+                                    （lemon-note backup help 查看详细说明）
   lemon-note config [选项]           显示当前生效的配置（选项会写回配置文件）
   lemon-note version
 
@@ -97,6 +99,8 @@ func main() {
 		err = runAdmin(args)
 	case "doctor":
 		err = runDoctor(args)
+	case "backup":
+		err = runBackupCmd(args)
 	case "config":
 		err = runConfig(args)
 	case "version", "--version", "-v":

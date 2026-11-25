@@ -18,8 +18,10 @@ lemon-note/
   docs/spec.md                 本文
   lemon-note-service/          Go 服务（命令行版与带界面版共用内核）
     cmd/lemon-note/            命令行入口
-    gui/                       带界面版（Wails v3，独立 go.mod，CGO）
+    cmd/lemon-note-gui/        带界面版（Wails v3，全部文件带 gui 构建标签，同一 go.mod；macOS / Linux 需要 CGO）
+    Dockerfile                 服务镜像（构建上下文是仓库根目录）
     internal/...               见 §14
+  scripts/                     本地构建与打包脚本（CI 也用）
   lemon-note-console/          Vue 3 + Vite 前端，dist 在打包时嵌进服务
   .github/workflows/build.yml  构建、测试、发布
   .secrets/                    本机测试密钥（已 gitignore，绝不提交）
@@ -396,8 +398,8 @@ COS 与 OSS 走各自的 S3 兼容接口（虚拟主机风格），界面上是�
 
 ### 10.2 模式
 
-- 全量：每次生成一个独立备份包 `lemon-note-<实例>-<时间>.lnbak`（tar + zstd，可选加密），包含当时的快照、之后的日志段、被引用的附件、`lemon-note.json`、`MANIFEST`、`config/secret.key`。保留策略：保留最近 N 个，或按天 / 周 / 月分层保留。
-- 增量（镜像）：目标上维护一份与数据目录同结构的副本，只上传新增文件（不可变文件按名字判断即可），删除源端已删除的文件。上传顺序：附件 → 日志段 → 快照 → `MANIFEST` 最后，所以任何时刻目标上的副本都能直接当数据目录用。
+- 全量：每次生成一个独立备份包 `lemon-note-<实例前 8 位>-<UTC 时间>.lnbak`（tar + zstd，可选加密），包含当时的快照、之后的日志段、被引用的附件、`lemon-note.json`、`MANIFEST`、`config/secret.key`；tar 第一个条目是包信息，最后一个条目是全部文件的大小与 sha256 索引。包按固定大小分卷（默认 1 GB，可设 16–4096 MB）：前面的卷名为 `.lnbak.0001`、`.0002`…，最后一卷就叫 `.lnbak` 且最后上传，所以它存在就说明整包完整。未加密的包可以手工按顺序拼接后 `zstd -d | tar -x` 还原。保留策略：保留最近 N 个，或按天 / 周 / 月分层保留。
+- 增量（镜像）：目标上的子目录 `mirror-<实例前 8 位>/` 里维护一份与数据目录同结构的副本（放子目录而不是目标根，避免目标根的 `lemon-note-backup.json` 被当成数据目录里的冲突副本，也让多个实例可以共用一个目标），目标根另有指针文件 `lemon-note-<实例前 8 位>-mirror.json` 供备份列表发现镜像。只上传新增文件（不可变文件按名字判断；目标上 MANIFEST 可读且血统一致时才复用同名快照与日志段，附件按内容哈希命名总是复用），删除源端已删除的文件（只在新 MANIFEST 上传之后删，只删日志段、快照、附件）。上传顺序：附件 → 日志段 → 快照 → `MANIFEST` 最后，所以任何时刻目标上的副本都能直接当数据目录用。
 - 备份进行期间持有「备份租约」，快照器暂停清理旧文件，保证拷贝的文件集合一致。
 
 ### 10.3 加密
@@ -445,7 +447,8 @@ COS 与 OSS 走各自的 S3 兼容接口（虚拟主机风格），界面上是�
 lemon-note-service/
   cmd/lemon-note/          命令行：serve、setup、service install|uninstall|start|stop|status、backup run|list|restore、
                            admin reset-password|reset-2fa、doctor、version
-  gui/                     Wails v3：托盘图标 + 状态窗口（运行状态、地址、数据目录、启动 / 停止、开机自启、打开控制台）
+  cmd/lemon-note-gui/      带界面版（Wails v3，构建标签 gui）：托盘图标 + 状态窗口（运行状态、地址、数据目录、
+                           启动 / 停止、更换数据目录、开机自启、打开控制台），进程内调用 internal/app
   internal/
     app/        组装与生命周期（命令行和带界面版共用 Start / Stop）
     config/     引导配置与默认路径

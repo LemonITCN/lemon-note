@@ -21,6 +21,7 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/accounts"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/agent"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/auth"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/backup/engine"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/comments"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
@@ -104,6 +105,7 @@ type Services struct {
 	Share    *share.Service
 	Comments *comments.Service
 	Agent    *agent.Service
+	Backup   *engine.Engine
 	Web      *web.Server
 }
 
@@ -299,6 +301,9 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 	svc.Web.Extra = append(svc.Web.Extra, svc.Share.Public(svc.Web))
 	svc.Agent = agent.New(st, cat, svc.Pages, set, box, svc.Hub, a.Log, svc.Tools)
 	svc.Web.AddMount(svc.Agent.Mount)
+	if err := a.buildBackup(svc); err != nil {
+		return nil, fmt.Errorf("创建备份引擎失败: %w", err)
+	}
 	svc.Web.MCP = mcpserver.Handler(svc.Tools, svc.Web.BearerAuth, func(r *http.Request) string { return a.publicBase(r) + "/.well-known/oauth-protected-resource" })
 	for _, e := range extensions {
 		if err := e(a, svc); err != nil {

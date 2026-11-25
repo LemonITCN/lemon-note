@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,6 +23,22 @@ type davServer struct {
 	noOverwrite bool // 模拟不支持覆盖式 MOVE 的服务器
 	puts        atomic.Int64
 	chunked     atomic.Int64
+}
+
+// countingBody 记录请求体读到的字节数与错误。
+type countingBody struct {
+	io.ReadCloser
+	n   int64
+	err error
+}
+
+func (b *countingBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	b.n += int64(n)
+	if err != nil && err != io.EOF {
+		b.err = err
+	}
+	return n, err
 }
 
 func startDAV(t *testing.T, noOverwrite bool) *davServer {
@@ -49,6 +66,17 @@ func startDAV(t *testing.T, noOverwrite bool) *davServer {
 					return
 				}
 			}
+		}
+		if r.Method == http.MethodPut {
+			// 像真实的 WebDAV 服务器一样丢弃没传完的上传。x/net/webdav 会留下半个文件；客户端中断上传后
+			// 立刻发出的 DELETE 可能先于这里的处理到达，测试检查残留临时文件时就会偶发失败。
+			body := &countingBody{ReadCloser: r.Body}
+			r.Body = body
+			h.ServeHTTP(w, r)
+			if body.err != nil || (r.ContentLength >= 0 && body.n != r.ContentLength) {
+				os.Remove(filepath.Join(ds.dir, filepath.FromSlash(strings.TrimPrefix(r.URL.Path, "/dav"))))
+			}
+			return
 		}
 		h.ServeHTTP(w, r)
 	}))
