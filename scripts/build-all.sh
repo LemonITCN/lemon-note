@@ -27,7 +27,7 @@ else
     for t in "${ALL[@]}"; do
       if [ "$t" = "$want" ] || [ "${t%%/*}" = "$want" ]; then TARGETS+=("$t"); found=1; fi
     done
-    [ $found = 1 ] || { echo "未知目标：$want（可选：${ALL[*]}）" >&2; exit 2; }
+    [ $found = 1 ] || { echo "未知目标：${want}（可选：${ALL[*]}）" >&2; exit 2; }
   done
 fi
 
@@ -42,7 +42,7 @@ trap 'rm -rf "$WORK"' EXIT
 if [ ! -f "$LN_SERVICE/internal/web/dist/index.html" ]; then
   echo "提示：internal/web/dist 里没有前端产物，编出来的程序只有占位页（先运行 scripts/build-console.sh）" >&2
 fi
-echo "版本 $V，输出到 $OUT"
+echo "版本 ${V}，输出到 $OUT"
 
 LIPO=""
 if [ "$(uname -s)" = Darwin ]; then LIPO="xcrun lipo"; elif command -v lipo >/dev/null 2>&1; then LIPO="lipo"; fi

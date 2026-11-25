@@ -71,7 +71,7 @@ rm -f "$DMG"
 for i in 1 2 3 4 5; do
   if hdiutil create -quiet -volname "Lemon Note" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG"; then break; fi
   [ "$i" = 5 ] && exit 1
-  echo "hdiutil 失败，重试（$i）"
+  echo "hdiutil 失败，重试（${i}）"
   sleep 3
 done
 if [ "$ID" != "-" ]; then
