@@ -56,6 +56,12 @@ type Server struct {
 	trusted []netip.Prefix
 	mounts  []Mount
 	limiter *ipLimiter
+	// MCP 是 /mcp 端点（只接受 Bearer 令牌，不走会话与 CSRF）
+	MCP http.Handler
+	// OAuthLookup 校验 OAuth 访问令牌（OAuth 模块注入）
+	OAuthLookup func(ctx context.Context, token string) (*AuthInfo, bool)
+	// Extra 是额外的顶层路由（OAuth 元数据、公开分享页等）
+	Extra []func(r chi.Router)
 	// WSHandlers 处理浏览器经 WebSocket 发来的自定义消息
 	WSHandlers map[string]func(conn *realtime.Conn, data []byte)
 }
@@ -336,6 +342,9 @@ func (s *Server) mfaSetupRequired(ctx context.Context, u *model.User) bool {
 	return s.Settings.System(ctx).RequireMFA && !u.TOTPEnabled
 }
 
+// RequireAdmin 要求系统管理员（网页会话）。
+func (s *Server) RequireAdmin(next http.Handler) http.Handler { return s.requireAdmin(next) }
+
 func (s *Server) requireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		a := AuthOf(r)
@@ -366,6 +375,7 @@ func (s *Server) Handler() http.Handler {
 			s.routesSpaces(r)
 			s.routesPages(r)
 			s.routesSearch(r)
+			s.routesMarkdown(r)
 			r.Get("/api/ws", s.handleWS)
 			r.Post("/api/files", s.h(s.handleUpload))
 			r.Group(func(r chi.Router) {
@@ -377,8 +387,35 @@ func (s *Server) Handler() http.Handler {
 			}
 		})
 	})
+	if s.MCP != nil {
+		r.Handle("/mcp", s.MCP)
+		r.Handle("/mcp/*", s.MCP)
+	}
+	for _, fn := range s.Extra {
+		fn(r)
+	}
 	r.NotFound(s.serveStatic)
 	return r
+}
+
+// BearerAuth 用个人访问令牌认证（给 MCP 用）。
+func (s *Server) BearerAuth(r *http.Request) (*AuthInfo, bool) {
+	h := r.Header.Get("Authorization")
+	if !strings.HasPrefix(h, "Bearer ") {
+		return nil, false
+	}
+	raw := strings.TrimSpace(strings.TrimPrefix(h, "Bearer "))
+	if strings.HasPrefix(raw, auth.TokenPrefix) {
+		if t, u, err := s.Auth.LookupToken(r.Context(), raw); err == nil {
+			return &AuthInfo{User: u, Token: t, CanWrite: tokenCanWrite(t), Spaces: tokenSpaces(t)}, true
+		}
+	}
+	if s.OAuthLookup != nil {
+		if a, ok := s.OAuthLookup(r.Context(), raw); ok {
+			return a, true
+		}
+	}
+	return nil, false
 }
 
 func tokenCanWrite(t *model.APIToken) bool {

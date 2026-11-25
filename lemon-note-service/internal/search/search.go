@@ -18,7 +18,7 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/store"
 )
 
-const indexVersion = "2"
+const indexVersion = "3"
 
 // Index 是全文索引。
 type Index struct {
@@ -267,11 +267,6 @@ func PlainFromJSON(data string) string {
 		case []any:
 			for _, e := range x {
 				walk(e)
-			}
-		case string:
-			if len(x) < 400 && !strings.HasPrefix(x, "lemon://") && !strings.HasPrefix(x, "http") {
-				b.WriteString(x)
-				b.WriteByte(' ')
 			}
 		}
 	}

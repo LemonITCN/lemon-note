@@ -16,18 +16,24 @@ import (
 	"sync/atomic"
 	"time"
 
+	"encoding/json"
+
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/accounts"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/agent"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/auth"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
-	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/ids"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/lnmd"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/mcpserver"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/pages"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/persist"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/realtime"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/settings"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/tools"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/version"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/web"
 )
@@ -90,6 +96,8 @@ type Services struct {
 	Box      *crypt.Box
 	Files    *files.Service
 	Search   *search.Index
+	Tools    *tools.Services
+	Agent    *agent.Service
 	Web      *web.Server
 }
 
@@ -265,8 +273,19 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 		return nil, fmt.Errorf("打开全文索引失败: %w", err)
 	}
 	svc.Search = ix
+	ix.Text = func(data string) string {
+		var n lnmd.Node
+		if json.Unmarshal([]byte(data), &n) != nil {
+			return search.PlainFromJSON(data)
+		}
+		return lnmd.PlainText(n)
+	}
 	svc.Web = web.NewServer(web.Deps{Log: a.Log, Boot: a.Boot, Inst: inst, Store: st, Cat: cat, Auth: svc.Auth, Settings: set,
 		Pages: svc.Pages, Accounts: svc.Accounts, Hub: svc.Hub, Box: box, Files: svc.Files, Search: ix, Started: time.Now()})
+	svc.Tools = &tools.Services{Store: st, Cat: cat, Pages: svc.Pages, Search: ix, Files: svc.Files, Settings: set, Box: box, Log: a.Log}
+	svc.Agent = agent.New(st, cat, svc.Pages, set, box, svc.Hub, a.Log, svc.Tools)
+	svc.Web.AddMount(svc.Agent.Mount)
+	svc.Web.MCP = mcpserver.Handler(svc.Tools, svc.Web.BearerAuth, func(r *http.Request) string { return a.publicBase(r) + "/.well-known/oauth-protected-resource" })
 	for _, e := range extensions {
 		if err := e(a, svc); err != nil {
 			return nil, err
@@ -312,6 +331,9 @@ func (a *App) Stop(ctx context.Context) error {
 	a.startedAt = time.Time{}
 	a.mu.Unlock()
 	if svc != nil {
+		if svc.Agent != nil {
+			svc.Agent.StopAll()
+		}
 		for _, fn := range stopHooks {
 			fn(svc)
 		}
@@ -353,4 +375,16 @@ func LogDir(cacheDir string) string { return filepath.Join(cacheDir, "logs") }
 // EnsureDirs 确保缓存目录存在。
 func EnsureDirs(b *config.Bootstrap) error {
 	return os.MkdirAll(b.CacheDir, 0o700)
+}
+
+// publicBase 返回对外访问地址（优先引导配置里的 base_url，否则按请求推断）。
+func (a *App) publicBase(r *http.Request) string {
+	if a.Boot.BaseURL != "" {
+		return strings.TrimRight(a.Boot.BaseURL, "/")
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host
 }

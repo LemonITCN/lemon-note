@@ -142,3 +142,26 @@ func readJSONLimit(r *http.Request, dst any, limit int64) error {
 	}
 	return nil
 }
+
+// ---------- 给其他模块用的导出 ----------
+
+// H 把返回 error 的处理函数转成 http.HandlerFunc。
+func (s *Server) H(fn func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc { return s.h(fn) }
+
+// OK 写成功响应。
+func OK(w http.ResponseWriter, v any) error { return ok(w, v) }
+
+// ReadJSON 读请求体。
+func ReadJSON(r *http.Request, dst any) error { return readJSON(r, dst) }
+
+// ReadJSONLimit 读请求体（指定上限）。
+func ReadJSONLimit(r *http.Request, dst any, limit int64) error { return readJSONLimit(r, dst, limit) }
+
+// Bad 参数错误。
+func Bad(msg string) error { return errBad(msg) }
+
+// NotFound 不存在。
+func NotFound(what string) error { return errNotFound(what) }
+
+// Forbidden 没有权限。
+func Forbidden() error { return errForbidden() }
