@@ -15,6 +15,7 @@ import { errorText } from '@/i18n'
 import { roleAtLeast } from '@/api/types'
 import { dragState } from '@/lib/dnd'
 import NewSpaceDialog from './NewSpaceDialog.vue'
+import InboxButton from './InboxButton.vue'
 import { dbApi } from '@/lib/db'
 
 const { t } = useI18n()
@@ -86,6 +87,7 @@ async function dropToRoot(e: DragEvent) {
       <div class="quick">
         <button class="item" @click="ui.searchOpen = true"><Icon name="search" :size="17" /><span>{{ t('nav.search') }}</span></button>
         <RouterLink to="/" class="item"><Icon name="home" :size="17" /><span>{{ t('nav.home') }}</span></RouterLink>
+        <InboxButton />
       </div>
       <template v-if="ws.favorites.length">
         <button class="sec" @click="showFav = !showFav">{{ t('nav.favorites') }}<Icon :name="showFav ? 'chevron-down' : 'chevron-right'" :size="12" /></button>

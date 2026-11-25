@@ -374,6 +374,7 @@ func (s *Server) Handler() http.Handler {
 			s.routesPages(r)
 			s.routesSearch(r)
 			s.routesMarkdown(r)
+			s.routesInbox(r)
 			r.Get("/api/ws", s.handleWS)
 			r.Post("/api/files", s.h(s.handleUpload))
 			r.Group(func(r chi.Router) {

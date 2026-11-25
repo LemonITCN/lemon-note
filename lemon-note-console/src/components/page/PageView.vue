@@ -161,6 +161,7 @@ const moreMenu = computed(() => {
     { label: f.locked ? t('page.unlock') : t('page.lock'), icon: f.locked ? 'unlock' : 'lock', disabled: !roleAtLeast(data.value?.role || '', 'editor'), run: () => setFlag('locked', !f.locked) },
     { label: t('page.history'), icon: 'history', run: () => (historyOpen.value = true) },
     { label: t('editor.addToChat'), icon: 'assistant', run: () => addToChat({ kind: isDb.value ? 'database' : 'page', id: props.id, title: title.value, icon: page.value?.icon }) },
+    ...(ui.isMobile ? [{ label: t('page.share'), icon: 'share', run: () => (shareOpen.value = true) }] : []),
     { label: t('page.copyLink'), icon: 'link', run: () => { navigator.clipboard?.writeText(location.origin + '/p/' + props.id); toast.success(t('common.copied')) } },
     { label: t('page.exportMarkdown'), icon: 'download', run: () => window.open(`/api/pages/${props.id}/export?format=md`, '_blank') },
   ]

@@ -131,6 +131,9 @@ export default {
     startRestore: '开始恢复', baiduAuth: '授权百度网盘', baiduTip: '用百度网盘 App 扫码，或打开下面的地址输入上方的代码完成授权。',
     baiduWaiting: '等待授权…', baiduOk: '已授权',
   },
+  inbox: {
+    title: '收件箱', empty: '没有新消息', readAll: '全部已读', share: '{name} 把页面分享给你（{role}）', comment: '{name} 回复了评论', mention: '{name} 在页面里提到了你',
+  },
   roles: { owner: '所有者', admin: '管理员', editor: '可编辑', commenter: '可评论', viewer: '可查看' },
   audit: {
     backup_baidu_authorize: '授权百度网盘', backup_restore: '恢复备份', backup_run: '执行备份', backup_target_create: '新建备份目标', backup_target_delete: '删除备份目标', backup_target_update: '修改备份目标', backup_verify: '校验备份',

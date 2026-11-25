@@ -131,6 +131,9 @@ export default {
     startRestore: 'Start restore', baiduAuth: 'Authorize Baidu Netdisk', baiduTip: 'Scan with the Baidu Netdisk app, or open the link below and enter the code above.',
     baiduWaiting: 'Waiting for authorization…', baiduOk: 'Authorized',
   },
+  inbox: {
+    title: 'Inbox', empty: 'Nothing new', readAll: 'Mark all read', share: '{name} shared a page with you ({role})', comment: '{name} replied to a comment', mention: '{name} mentioned you',
+  },
   roles: { owner: 'Owner', admin: 'Admin', editor: 'Can edit', commenter: 'Can comment', viewer: 'Can view' },
   audit: {
     backup_baidu_authorize: 'Authorized Baidu Netdisk', backup_restore: 'Restored a backup', backup_run: 'Ran a backup', backup_target_create: 'Created backup target', backup_target_delete: 'Deleted backup target', backup_target_update: 'Updated backup target', backup_verify: 'Verified a backup',

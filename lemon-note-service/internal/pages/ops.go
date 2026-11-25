@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/fracidx"
@@ -104,6 +105,7 @@ func (s *Service) ApplyOpsTx(tx *store.Tx, actor, pageID string, ops []BlockOp, 
 	now := model.Now()
 	res := &ApplyResult{}
 	changed := false
+	notified := map[string]bool{}
 	for _, op := range ops {
 		if op.ID == "" {
 			return nil, errors.New("块操作缺少 id")
@@ -142,6 +144,21 @@ func (s *Service) ApplyOpsTx(tx *store.Tx, actor, pageID string, ops []BlockOp, 
 			}
 			if err := tx.Put("blocks", b); err != nil {
 				return nil, err
+			}
+			// 新 @ 到的人发收件箱通知（只发给能看到这个页面的人，不发给自己）
+			prev := ""
+			if exists {
+				prev = cur.Data
+			}
+			for _, uid := range newUserMentions(prev, data) {
+				if uid == actor || notified[uid] || !s.cat.CanRead(uid, pageID) {
+					continue
+				}
+				notified[uid] = true
+				if err := tx.Put("notifications", model.Notification{ID: ids.New(), UserID: uid, Kind: "mention", PageID: model.StrPtr(pageID),
+					ActorID: model.StrPtr(actor), Data: `{"block_id":"` + op.ID + `"}`, CreatedAt: now}); err != nil {
+					return nil, err
+				}
 			}
 			byID[op.ID] = b
 			r.Version = b.Version
@@ -314,5 +331,56 @@ func lis(a []string) []int {
 		out[i] = k
 		k = prev[k]
 	}
+	return out
+}
+
+// newUserMentions 返回 cur 里有、prev 里没有的用户提及（块 JSON 里 type=mention、attrs.kind=user 的节点）。
+func newUserMentions(prev, cur string) []string {
+	if !strings.Contains(cur, `"user"`) {
+		return nil
+	}
+	had := map[string]bool{}
+	for _, id := range userMentions(prev) {
+		had[id] = true
+	}
+	var out []string
+	for _, id := range userMentions(cur) {
+		if !had[id] {
+			had[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func userMentions(data string) []string {
+	if data == "" {
+		return nil
+	}
+	var n any
+	if json.Unmarshal([]byte(data), &n) != nil {
+		return nil
+	}
+	var out []string
+	var walk func(v any)
+	walk = func(v any) {
+		m, ok := v.(map[string]any)
+		if !ok {
+			return
+		}
+		if m["type"] == "mention" {
+			if a, ok := m["attrs"].(map[string]any); ok && a["kind"] == "user" {
+				if id, _ := a["id"].(string); id != "" {
+					out = append(out, id)
+				}
+			}
+		}
+		if c, ok := m["content"].([]any); ok {
+			for _, x := range c {
+				walk(x)
+			}
+		}
+	}
+	walk(n)
 	return out
 }
