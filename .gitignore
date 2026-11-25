@@ -1,0 +1,11 @@
+.secrets/
+.DS_Store
+node_modules/
+lemon-note-console/dist/
+lemon-note-service/internal/web/dist/*
+!lemon-note-service/internal/web/dist/.keep
+lemon-note-service/bin/
+lemon-note-service/gui/build/bin/
+*.local
+.env
+.env.*
