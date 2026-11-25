@@ -33,19 +33,19 @@ type GroupBy struct {
 
 // ViewConfig 是视图配置。
 type ViewConfig struct {
-	Filter     *Filter          `json:"filter,omitempty"`
-	Sorts      []Sort           `json:"sorts,omitempty"`
-	GroupBy    *GroupBy         `json:"group_by,omitempty"`
-	Visible    []string         `json:"visible,omitempty"`
-	Widths     map[string]int   `json:"widths,omitempty"`
-	CardCover  string           `json:"card_cover,omitempty"`
-	CardSize   string           `json:"card_size,omitempty"`
-	DateProp   string           `json:"date_prop,omitempty"`
-	EndProp    string           `json:"end_prop,omitempty"`
-	Wrap       bool             `json:"wrap,omitempty"`
-	Chart      map[string]any   `json:"chart,omitempty"`
-	Calculate  map[string]string `json:"calculate,omitempty"` // 表格底部统计
-	ShowTitle  bool             `json:"show_title,omitempty"`
+	Filter    *Filter           `json:"filter,omitempty"`
+	Sorts     []Sort            `json:"sorts,omitempty"`
+	GroupBy   *GroupBy          `json:"group_by,omitempty"`
+	Visible   []string          `json:"visible,omitempty"`
+	Widths    map[string]int    `json:"widths,omitempty"`
+	CardCover string            `json:"card_cover,omitempty"`
+	CardSize  string            `json:"card_size,omitempty"`
+	DateProp  string            `json:"date_prop,omitempty"`
+	EndProp   string            `json:"end_prop,omitempty"`
+	Wrap      bool              `json:"wrap,omitempty"`
+	Chart     map[string]any    `json:"chart,omitempty"`
+	Calculate map[string]string `json:"calculate,omitempty"` // 表格底部统计
+	ShowTitle bool              `json:"show_title,omitempty"`
 }
 
 // Matches 判断行是否满足筛选。
@@ -201,7 +201,9 @@ func evalOp(p *Property, v Value, op string, want any) (bool, error) {
 	return false, fmt.Errorf("不支持的筛选条件 %s", op)
 }
 
-func dayStart(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local) }
+func dayStart(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
+}
 
 // relRange 把相对日期（today、this_week、past_7_days……）转成区间。
 func relRange(s string) (time.Time, time.Time, bool) {
@@ -351,11 +353,11 @@ func (t *Table) sortKey(r *Row, p *Property) Value {
 
 // Group 是一个分组。
 type Group struct {
-	Key   string   `json:"key"`
-	Label string   `json:"label"`
-	Color string   `json:"color,omitempty"`
-	Rows  []*Row   `json:"rows"`
-	Count int      `json:"count"`
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Color string `json:"color,omitempty"`
+	Rows  []*Row `json:"rows"`
+	Count int    `json:"count"`
 }
 
 // GroupRows 按分组设置分组（选项按选项顺序，其他按值排序）。

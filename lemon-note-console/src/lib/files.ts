@@ -1,4 +1,5 @@
 import { api } from '@/api/client'
+import { publicPath } from './publicCtx'
 
 export interface UploadedFile { id: string; name: string; size: number; mime: string; width?: number; height?: number }
 
@@ -15,7 +16,7 @@ export async function uploadFile(file: File, pageId?: string, spaceId?: string):
 /** lemon://file/<id> → 可访问的地址。 */
 export function fileURL(src: string | undefined | null): string {
   if (!src) return ''
-  if (src.startsWith('lemon://file/')) return '/api/files/' + src.slice('lemon://file/'.length)
+  if (src.startsWith('lemon://file/')) return publicPath('/api/files/' + src.slice('lemon://file/'.length))
   return src
 }
 

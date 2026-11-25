@@ -201,4 +201,3 @@ func (h *setupHandler) setup(w http.ResponseWriter, r *http.Request) {
 func persistHostID(a *App) (string, error) {
 	return configHostID(a.Boot.CacheDir)
 }
-

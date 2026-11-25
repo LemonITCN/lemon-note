@@ -13,7 +13,6 @@ export default defineConfig({
       '/api/ws': { target, ws: true, changeOrigin: false },
       '/api': { target, changeOrigin: false },
       '/mcp': { target, changeOrigin: false },
-      '/share': { target, changeOrigin: false },
     },
   },
   build: {

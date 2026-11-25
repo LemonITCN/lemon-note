@@ -135,7 +135,7 @@ type Model struct {
 	Temperature    bool     `json:"-"`
 	Featured       bool     `json:"featured,omitempty"`
 	Quota          int      `json:"quota,omitempty"` // 套餐里每月可用额度（相对值，越大越耐用）
-	Type           string   `json:"type,omitempty"` // chat | embedding
+	Type           string   `json:"type,omitempty"`  // chat | embedding
 }
 
 // Provider 是一个模型供应商。
@@ -176,7 +176,9 @@ func IsRetryable(err error) bool {
 	return false
 }
 
-func retryableStatus(code int) bool { return code == 408 || code == 409 || code == 425 || code == 429 || code >= 500 }
+func retryableStatus(code int) bool {
+	return code == 408 || code == 409 || code == 425 || code == 429 || code >= 500
+}
 
 // sanitizeText 清洗个别模型把工具调用标记漏进正文的情况。
 func sanitizeText(s string) string {

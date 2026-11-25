@@ -130,17 +130,17 @@ func (s *Server) handleGetPage(w http.ResponseWriter, r *http.Request) error {
 
 func (s *Server) handleCreatePage(w http.ResponseWriter, r *http.Request) error {
 	var in struct {
-		SpaceID    string            `json:"space_id"`
-		ParentID   string            `json:"parent_id"`
-		Kind       string            `json:"kind"`
-		Title      string            `json:"title"`
-		Icon       string            `json:"icon"`
-		AfterID    string            `json:"after_id"`
-		First      bool              `json:"first"`
-		Flags      model.PageFlags   `json:"flags"`
-		Blocks     []pages.BlockDoc  `json:"blocks"`
-		TemplateID string            `json:"template_id"`
-		Props      json.RawMessage   `json:"props"`
+		SpaceID    string           `json:"space_id"`
+		ParentID   string           `json:"parent_id"`
+		Kind       string           `json:"kind"`
+		Title      string           `json:"title"`
+		Icon       string           `json:"icon"`
+		AfterID    string           `json:"after_id"`
+		First      bool             `json:"first"`
+		Flags      model.PageFlags  `json:"flags"`
+		Blocks     []pages.BlockDoc `json:"blocks"`
+		TemplateID string           `json:"template_id"`
+		Props      json.RawMessage  `json:"props"`
 	}
 	if err := readJSON(r, &in); err != nil {
 		return err

@@ -18,11 +18,11 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
-	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/model"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/pages"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/persist"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/realtime"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/settings"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -215,9 +215,7 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Permissions-Policy", "camera=(), geolocation=(), payment=()")
-		if !strings.HasPrefix(r.URL.Path, "/share/") {
-			h.Set("Content-Security-Policy", contentSecurityPolicy)
-		}
+		h.Set("Content-Security-Policy", contentSecurityPolicy)
 		if s.IsHTTPS(r) {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
@@ -368,7 +366,7 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/api/auth/register", s.h(s.handleRegister))
 		r.Post("/api/auth/logout", s.h(s.handleLogout))
 		r.Get("/api/auth/me", s.h(s.handleMe))
-		r.Get("/api/files/{id}", s.h(s.handleDownload)) // 分享页用令牌读附件，不要求登录
+		r.Get("/api/files/{id}", s.h(s.handleDownload)) // 未登录时一律当不存在；公开分享页走 /api/public
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireUser)
 			s.routesMe(r)

@@ -1,4 +1,6 @@
 // 统一的接口调用：自动带 CSRF 令牌与实时连接 id，错误统一成 ApiError。
+import { publicPath } from '@/lib/publicCtx'
+
 let csrf = ''
 let connId = ''
 
@@ -30,6 +32,7 @@ export interface RequestOptions {
 }
 
 export async function request<T = any>(method: string, path: string, body?: unknown, opts: RequestOptions = {}): Promise<T> {
+  path = publicPath(path)
   const headers: Record<string, string> = { Accept: 'application/json', ...(opts.headers || {}) }
   let payload: BodyInit | undefined
   if (body instanceof FormData) {
@@ -56,7 +59,7 @@ export async function request<T = any>(method: string, path: string, body?: unkn
   if (!res.ok) {
     const err = data?.error || {}
     const e = new ApiError(res.status, err.code || 'http_' + res.status, err.message || `请求失败（${res.status}）`, err.extra)
-    if (res.status === 401 && e.code !== 'bad_credentials' && e.code !== 'mfa_required') authListeners.forEach((fn) => fn(e))
+    if (res.status === 401 && e.code !== 'bad_credentials' && e.code !== 'mfa_required' && !path.startsWith('/api/public/')) authListeners.forEach((fn) => fn(e))
     throw e
   }
   return data as T

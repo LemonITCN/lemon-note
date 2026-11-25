@@ -45,18 +45,18 @@ func (t *Table) Column(name string) (Column, bool) {
 	return Column{}, false
 }
 
-func id() Column                  { return Column{Name: "id", Type: TID} }
-func key(n string) Column         { return Column{Name: n, Type: TKey} }
-func nkey(n string) Column        { return Column{Name: n, Type: TKey, Nullable: true} }
-func ref(n string) Column         { return Column{Name: n, Type: TID} }
-func nref(n string) Column        { return Column{Name: n, Type: TID, Nullable: true} }
-func text(n string) Column        { return Column{Name: n, Type: TText} }
-func ntext(n string) Column       { return Column{Name: n, Type: TText, Nullable: true} }
-func integer(n string) Column     { return Column{Name: n, Type: TInt} }
-func ninteger(n string) Column    { return Column{Name: n, Type: TInt, Nullable: true} }
-func boolean(n string) Column     { return Column{Name: n, Type: TBool} }
-func pos(n string) Column         { return Column{Name: n, Type: TKeyBin} }
-func blob(n string) Column        { return Column{Name: n, Type: TBlob} }
+func id() Column                             { return Column{Name: "id", Type: TID} }
+func key(n string) Column                    { return Column{Name: n, Type: TKey} }
+func nkey(n string) Column                   { return Column{Name: n, Type: TKey, Nullable: true} }
+func ref(n string) Column                    { return Column{Name: n, Type: TID} }
+func nref(n string) Column                   { return Column{Name: n, Type: TID, Nullable: true} }
+func text(n string) Column                   { return Column{Name: n, Type: TText} }
+func ntext(n string) Column                  { return Column{Name: n, Type: TText, Nullable: true} }
+func integer(n string) Column                { return Column{Name: n, Type: TInt} }
+func ninteger(n string) Column               { return Column{Name: n, Type: TInt, Nullable: true} }
+func boolean(n string) Column                { return Column{Name: n, Type: TBool} }
+func pos(n string) Column                    { return Column{Name: n, Type: TKeyBin} }
+func blob(n string) Column                   { return Column{Name: n, Type: TBlob} }
 func idx(name string, cols ...string) Index  { return Index{Name: name, Columns: cols} }
 func uidx(name string, cols ...string) Index { return Index{Name: name, Columns: cols, Unique: true} }
 

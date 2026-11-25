@@ -23,11 +23,17 @@ type APIError struct {
 
 func (e *APIError) Error() string { return e.Message }
 
-func errBad(msg string) *APIError       { return &APIError{Status: 400, Code: "bad_request", Message: msg} }
-func errUnauth() *APIError              { return &APIError{Status: 401, Code: "unauthorized", Message: "请先登录"} }
-func errForbidden() *APIError           { return &APIError{Status: 403, Code: "forbidden", Message: "没有权限"} }
-func errNotFound(what string) *APIError { return &APIError{Status: 404, Code: "not_found", Message: what + "不存在"} }
-func errConflict(msg string) *APIError  { return &APIError{Status: 409, Code: "conflict", Message: msg} }
+func errBad(msg string) *APIError { return &APIError{Status: 400, Code: "bad_request", Message: msg} }
+func errUnauth() *APIError {
+	return &APIError{Status: 401, Code: "unauthorized", Message: "请先登录"}
+}
+func errForbidden() *APIError {
+	return &APIError{Status: 403, Code: "forbidden", Message: "没有权限"}
+}
+func errNotFound(what string) *APIError {
+	return &APIError{Status: 404, Code: "not_found", Message: what + "不存在"}
+}
+func errConflict(msg string) *APIError { return &APIError{Status: 409, Code: "conflict", Message: msg} }
 
 type handlerFunc func(w http.ResponseWriter, r *http.Request) error
 
@@ -146,7 +152,9 @@ func readJSONLimit(r *http.Request, dst any, limit int64) error {
 // ---------- 给其他模块用的导出 ----------
 
 // H 把返回 error 的处理函数转成 http.HandlerFunc。
-func (s *Server) H(fn func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc { return s.h(fn) }
+func (s *Server) H(fn func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+	return s.h(fn)
+}
 
 // OK 写成功响应。
 func OK(w http.ResponseWriter, v any) error { return ok(w, v) }

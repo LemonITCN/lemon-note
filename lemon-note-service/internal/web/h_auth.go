@@ -15,6 +15,16 @@ import (
 )
 
 // audit 写安全审计日志（失败不影响主流程）。
+// Audit 写一条安全审计日志（给其他模块用）。
+func (s *Server) Audit(r *http.Request, userID, action, target string, detail any) {
+	s.audit(r, userID, action, target, detail)
+}
+
+// Allow 按 key 限流：每秒 rate 个、最多 burst 个。
+func (s *Server) Allow(key string, rate, burst float64) bool {
+	return s.limiter.Allow(key, rate, burst)
+}
+
 func (s *Server) audit(r *http.Request, userID, action, target string, detail any) {
 	d, _ := json.Marshal(detail)
 	if detail == nil {

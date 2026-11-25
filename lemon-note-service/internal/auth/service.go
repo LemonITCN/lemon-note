@@ -187,7 +187,7 @@ func (s *Service) CreateSession(ctx context.Context, userID, ip, ua string, mfaO
 	now := time.Now()
 	sess := &model.Session{ID: hashToken(tok), UserID: userID, CreatedAt: now.UnixMilli(), LastSeenAt: now.UnixMilli(),
 		ExpiresAt: now.Add(time.Duration(sys.SessionMaxDays) * 24 * time.Hour).UnixMilli(),
-		IP: ip, UA: truncate(ua, 300), MFAOK: mfaOK, CSRF: ids.RandomToken(32), Data: "{}"}
+		IP:        ip, UA: truncate(ua, 300), MFAOK: mfaOK, CSRF: ids.RandomToken(32), Data: "{}"}
 	if err := s.st.PutLocal(ctx, "sessions", sess); err != nil {
 		return "", nil, err
 	}

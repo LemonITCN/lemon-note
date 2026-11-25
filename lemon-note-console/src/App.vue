@@ -26,7 +26,7 @@ async function retry() {
 
 onMounted(async () => {
   await router.isReady()
-  if (!s.boot) failed.value = true
+  if (!s.boot && router.currentRoute.value.name !== 'share') failed.value = true
 })
 
 onAuthError(() => {

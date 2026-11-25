@@ -20,11 +20,11 @@ import (
 
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/accounts"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/agent"
-	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/dbs"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/auth"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/config"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/dbs"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/ids"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/lnmd"
@@ -34,6 +34,7 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/realtime"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/settings"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/share"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/tools"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/version"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/web"
@@ -99,6 +100,7 @@ type Services struct {
 	Search   *search.Index
 	Tools    *tools.Services
 	DBs      *dbs.Service
+	Share    *share.Service
 	Agent    *agent.Service
 	Web      *web.Server
 }
@@ -287,6 +289,9 @@ func (a *App) buildServices(ctx context.Context, inst *persist.Instance) (*Servi
 	svc.DBs = dbs.New(st, cat, svc.Pages)
 	svc.Tools = &tools.Services{Store: st, Cat: cat, Pages: svc.Pages, Search: ix, Files: svc.Files, Settings: set, Box: box, Log: a.Log, DB: svc.DBs}
 	svc.Web.AddMount(svc.DBs.Mount)
+	svc.Share = share.New(st, cat, svc.Pages, svc.DBs, svc.Files, set, box, svc.Hub)
+	svc.Web.AddMount(svc.Share.Mount)
+	svc.Web.Extra = append(svc.Web.Extra, svc.Share.Public(svc.Web))
 	svc.Agent = agent.New(st, cat, svc.Pages, set, box, svc.Hub, a.Log, svc.Tools)
 	svc.Web.AddMount(svc.Agent.Mount)
 	svc.Web.MCP = mcpserver.Handler(svc.Tools, svc.Web.BearerAuth, func(r *http.Request) string { return a.publicBase(r) + "/.well-known/oauth-protected-resource" })

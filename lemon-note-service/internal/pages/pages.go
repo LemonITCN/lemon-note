@@ -53,10 +53,10 @@ type BlockDoc struct {
 
 // PageDoc 是页面加正文。
 type PageDoc struct {
-	Page   *model.Page      `json:"page"`
-	Flags  model.PageFlags  `json:"flags"`
-	Props  json.RawMessage  `json:"props"`
-	Blocks []BlockDoc       `json:"blocks"`
+	Page   *model.Page     `json:"page"`
+	Flags  model.PageFlags `json:"flags"`
+	Props  json.RawMessage `json:"props"`
+	Blocks []BlockDoc      `json:"blocks"`
 }
 
 // Get 读页面元信息。

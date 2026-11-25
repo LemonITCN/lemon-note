@@ -117,7 +117,9 @@ func (sqliteDialect) hasIndex(ctx context.Context, q queryer, table, index strin
 	err := q.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master WHERE type='index' AND name=?", index).Scan(&n)
 	return n > 0, err
 }
-func (sqliteDialect) createIndex(t *Table, ix Index) string { return createIndexIfNotExists(SQLite, t, ix) }
+func (sqliteDialect) createIndex(t *Table, ix Index) string {
+	return createIndexIfNotExists(SQLite, t, ix)
+}
 
 // ---------- MySQL / MariaDB ----------
 
@@ -246,7 +248,9 @@ func (pgDialect) hasIndex(ctx context.Context, q queryer, table, index string) (
 	err := q.QueryRowContext(ctx, "SELECT count(*) FROM pg_indexes WHERE schemaname=current_schema() AND indexname=$1", index).Scan(&n)
 	return n > 0, err
 }
-func (pgDialect) createIndex(t *Table, ix Index) string { return createIndexIfNotExists(Postgres, t, ix) }
+func (pgDialect) createIndex(t *Table, ix Index) string {
+	return createIndexIfNotExists(Postgres, t, ix)
+}
 
 func upsertOnConflict(e Engine, t *Table, cols []string) string {
 	var names, marks, sets []string

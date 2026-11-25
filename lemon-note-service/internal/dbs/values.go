@@ -16,7 +16,7 @@ type Row struct {
 	Title     string         `json:"title"`
 	Icon      string         `json:"icon,omitempty"`
 	Position  string         `json:"position"`
-	Props     map[string]any `json:"props"`            // 存储的属性值（按属性 id）
+	Props     map[string]any `json:"props"`              // 存储的属性值（按属性 id）
 	Computed  map[string]any `json:"computed,omitempty"` // 计算出的值（公式、汇总等），给界面显示
 	CreatedAt int64          `json:"created_at"`
 	CreatedBy string         `json:"created_by"`

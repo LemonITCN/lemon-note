@@ -1027,13 +1027,13 @@ func init() {
 			}
 			return math.Pow(toNum(a[0]), toNum(a[1])), nil
 		},
-		"min": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "min"), nil },
-		"max": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "max"), nil },
-		"sum": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "sum"), nil },
-		"mean": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "average"), nil },
+		"min":     func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "min"), nil },
+		"max":     func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "max"), nil },
+		"sum":     func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "sum"), nil },
+		"mean":    func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "average"), nil },
 		"average": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "average"), nil },
-		"median": func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "median"), nil },
-		"now":   func(_ *EvalEnv, _ []Value) (Value, error) { return DateVal{Start: time.Now(), HasTime: true}, nil },
+		"median":  func(_ *EvalEnv, a []Value) (Value, error) { return aggNum(listOf(a), "median"), nil },
+		"now":     func(_ *EvalEnv, _ []Value) (Value, error) { return DateVal{Start: time.Now(), HasTime: true}, nil },
 		"today": func(_ *EvalEnv, _ []Value) (Value, error) {
 			t := time.Now()
 			return DateVal{Start: time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)}, nil
@@ -1137,7 +1137,7 @@ func init() {
 			}
 			return w
 		}),
-		"week": dateField("week", func(t time.Time) float64 { _, w := t.ISOWeek(); return float64(w) }),
+		"week":      dateField("week", func(t time.Time) float64 { _, w := t.ISOWeek(); return float64(w) }),
 		"timestamp": dateField("timestamp", func(t time.Time) float64 { return float64(t.UnixMilli()) }),
 		"at": func(_ *EvalEnv, a []Value) (Value, error) {
 			if err := need(a, 2, "at"); err != nil {
@@ -1197,7 +1197,7 @@ func init() {
 			return out, nil
 		},
 		"includes": func(env *EvalEnv, a []Value) (Value, error) { return funcs["contains"](env, a) },
-		"id": func(env *EvalEnv, _ []Value) (Value, error) { return env.ID, nil },
+		"id":       func(env *EvalEnv, _ []Value) (Value, error) { return env.ID, nil },
 		"tostring": func(_ *EvalEnv, a []Value) (Value, error) { return ToText(firstArg(a)), nil },
 	}
 }

@@ -301,10 +301,10 @@ func (s *Store) ReadOnlyReason() string { return s.readOnly.Load().(string) }
 
 // Tx 是一次写事务。
 type Tx struct {
-	s     *Store
-	tx    *sqlx.Tx
-	ctx   context.Context
-	ops   []Op
+	s      *Store
+	tx     *sqlx.Tx
+	ctx    context.Context
+	ops    []Op
 	pos    map[string]int
 	after  []func()
 	origin string

@@ -10,8 +10,11 @@ import SortEditor from './SortEditor.vue'
 import type { DB } from './useDatabase'
 import { VIEW_ICONS, TYPE_ICONS } from '@/lib/db'
 import { confirmDialog } from '@/lib/confirm'
+import { isPublic } from '@/lib/publicCtx'
 
 const props = defineProps<{ db: DB }>()
+// 公开分享页只按视图查看：筛选、排序、分组等临时条件服务器不接受，就不显示
+const publicMode = isPublic()
 const emit = defineEmits<{ newRow: []; newProp: [] }>()
 const { t } = useI18n()
 const searching = ref(false)
@@ -62,6 +65,7 @@ const isVisible = (pid: string) => !v.value?.config.visible?.length || v.value.c
     </div>
     <span class="ln-spacer" />
     <div class="tools">
+      <template v-if="!publicMode">
       <PopoverRoot>
         <PopoverTrigger as-child><button class="tb" :class="{ on: filterCount }"><Icon name="filter" :size="15" /><span v-if="filterCount">{{ filterCount }}</span></button></PopoverTrigger>
         <PopoverPortal><PopoverContent class="db-pop" align="end" :side-offset="6"><FilterEditor :db="db" /></PopoverContent></PopoverPortal>
@@ -83,6 +87,7 @@ const isVisible = (pid: string) => !v.value?.config.visible?.length || v.value.c
           </PopoverContent>
         </PopoverPortal>
       </PopoverRoot>
+      </template>
       <input v-if="searching" v-model="db.search.value" class="search" :placeholder="t('common.search')" autofocus @input="db.requery(200)" @blur="!db.search.value && (searching = false)" />
       <button v-else class="tb" @click="searching = true"><Icon name="search" :size="15" /></button>
       <Btn v-if="db.canEdit.value" size="sm" variant="primary" @click="emit('newRow')">{{ t('common.create') }}</Btn>

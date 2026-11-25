@@ -3,6 +3,7 @@ import { dbApi, type DbSchema, type DbView, type QueryResult, type DbRow, type V
 import { realtime } from '@/lib/realtime'
 import { useToast } from '@/stores/toast'
 import { errorText } from '@/i18n'
+import { seedUsers } from '@/lib/users'
 
 /** 一个数据库实例的状态与操作。 */
 export function useDatabase(dbId: string, initialView?: string) {
@@ -47,7 +48,7 @@ export function useDatabase(dbId: string, initialView?: string) {
     const my = ++qseq
     try {
       const r = await dbApi.query(dbId, { view_id: viewId.value, search: search.value, filter: temp.filter })
-      if (my === qseq) result.value = r
+      if (my === qseq) { seedUsers((r as any).users); result.value = r }
     } catch (e) { error.value = errorText(e) }
   }
 

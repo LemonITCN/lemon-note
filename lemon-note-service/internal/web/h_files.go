@@ -68,7 +68,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
-// canReadFile 判断当前请求能否读取附件；分享页通过 share 令牌读取。
+// canReadFile 判断当前登录用户能否读取附件（公开分享页走 /api/public 下的接口）。
 func (s *Server) canReadFile(r *http.Request, f *model.File) bool {
 	if f.DeletedAt != nil {
 		return false
@@ -83,11 +83,6 @@ func (s *Server) canReadFile(r *http.Request, f *model.File) bool {
 			return true
 		}
 	}
-	if tok := r.URL.Query().Get("share"); tok != "" && f.PageID != nil {
-		if sh, ok := s.Cat.FindPublicShare(tok); ok && s.Cat.PublicCanView(sh, *f.PageID) && sh.PasswordHash == "" {
-			return true
-		}
-	}
 	return false
 }
 
@@ -96,6 +91,11 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) error {
 	if err != nil || !s.canReadFile(r, f) {
 		return errNotFound("文件")
 	}
+	return s.ServeFile(w, r, f)
+}
+
+// ServeFile 输出附件内容（调用方负责权限判断）。不能内联显示的类型一律下载，并加沙箱 CSP。
+func (s *Server) ServeFile(w http.ResponseWriter, r *http.Request, f *model.File) error {
 	fh, err := s.Files.Open(f)
 	if err != nil {
 		return errNotFound("文件")

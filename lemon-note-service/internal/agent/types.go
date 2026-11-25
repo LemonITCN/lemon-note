@@ -47,11 +47,11 @@ type ConvSettings struct {
 
 // ConvState 会话的上下文管理状态。
 type ConvState struct {
-	Summary      string   `json:"summary,omitempty"`        // 压缩后的摘要
-	SummaryUpTo  int64    `json:"summary_upto,omitempty"`   // 摘要覆盖到的消息序号（含）
-	PruneBefore  int64    `json:"prune_before,omitempty"`   // 此序号之前的工具结果用占位说明代替
-	LastContext  int      `json:"last_context,omitempty"`   // 最近一次请求的上下文 token
-	AllowedTools []string `json:"allowed_tools,omitempty"`  // 本会话已「总是允许」的工具
+	Summary      string          `json:"summary,omitempty"`       // 压缩后的摘要
+	SummaryUpTo  int64           `json:"summary_upto,omitempty"`  // 摘要覆盖到的消息序号（含）
+	PruneBefore  int64           `json:"prune_before,omitempty"`  // 此序号之前的工具结果用占位说明代替
+	LastContext  int             `json:"last_context,omitempty"`  // 最近一次请求的上下文 token
+	AllowedTools []string        `json:"allowed_tools,omitempty"` // 本会话已「总是允许」的工具
 	Todos        json.RawMessage `json:"todos,omitempty"`
 }
 

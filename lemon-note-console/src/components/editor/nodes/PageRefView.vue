@@ -18,7 +18,8 @@ const meta = computed(() => ws.pages.get(props.node.attrs.pageId) || fetched.val
 
 onMounted(async () => {
   const id = props.node.attrs.pageId
-  if (!id || ws.pages.has(id) || kind.value === 'childDatabase') return
+  if (!id) { missing.value = true; return }
+  if (ws.pages.has(id) || kind.value === 'childDatabase') return
   try {
     const r = await api.get(`/api/pages/${id}`)
     fetched.value = { title: r.page.title, icon: r.page.icon, kind: r.page.kind }
@@ -30,11 +31,11 @@ function go() { if (props.node.attrs.pageId) router.push(`/p/${props.node.attrs.
 
 <template>
   <NodeViewWrapper class="ln-pageref" :class="[kind, { selected: props.selected }]">
-    <DatabaseEmbed v-if="kind === 'childDatabase'" :database-id="props.node.attrs.pageId" :view-id="props.node.attrs.viewId" :editable="props.editor.isEditable" />
+    <DatabaseEmbed v-if="kind === 'childDatabase' && props.node.attrs.pageId" :database-id="props.node.attrs.pageId" :view-id="props.node.attrs.viewId" :editable="props.editor.isEditable" />
     <div v-else class="row" contenteditable="false" @click="go">
       <Icon v-if="kind === 'linkToPage'" name="arrow-up-right" :size="14" class="arrow" />
       <PageIcon :icon="meta?.icon" :kind="meta?.kind" :size="19" />
-      <span class="title" :class="{ missing }">{{ missing ? '无权访问或已删除' : (meta?.title || $t('common.untitled')) }}</span>
+      <span class="title" :class="{ missing }">{{ missing ? $t('share.noAccessOrDeleted') : (meta?.title || $t('common.untitled')) }}</span>
     </div>
   </NodeViewWrapper>
 </template>

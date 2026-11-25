@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/catalog"
+	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/files"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/llm"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/model"
@@ -19,7 +20,6 @@ import (
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/search"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/settings"
 	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/store"
-	"github.com/LemonITCN/lemon-note/lemon-note-service/internal/crypt"
 )
 
 // Services 是工具用到的服务。

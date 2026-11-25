@@ -32,9 +32,9 @@ var viewTypes = map[string]bool{"table": true, "board": true, "list": true, "gal
 
 // Info 是数据库的完整信息。
 type Info struct {
-	Page   *model.Page    `json:"page"`
-	Schema *Schema        `json:"schema"`
-	Views  []ViewInfo     `json:"views"`
+	Page   *model.Page `json:"page"`
+	Schema *Schema     `json:"schema"`
+	Views  []ViewInfo  `json:"views"`
 }
 
 // ViewInfo 是视图。
@@ -65,7 +65,9 @@ type ctxGetter struct {
 	st  *store.Store
 }
 
-func (g ctxGetter) Get(dest any, q string, args ...any) error { return g.st.Get(g.ctx, dest, q, args...) }
+func (g ctxGetter) Get(dest any, q string, args ...any) error {
+	return g.st.Get(g.ctx, dest, q, args...)
+}
 
 // Info 读数据库信息。
 func (s *Service) Info(ctx context.Context, id string) (*Info, error) {

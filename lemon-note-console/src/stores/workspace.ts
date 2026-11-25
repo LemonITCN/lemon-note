@@ -49,6 +49,7 @@ export const useWorkspace = defineStore('workspace', () => {
     await Promise.all([loadTree(currentSpaceId.value), loadSide()])
     realtime.on('page', ({ meta }: { meta: PageMeta }) => upsert(meta))
     realtime.on('page_removed', ({ id }: { id: string }) => pages.delete(id))
+    realtime.on('shares', () => { loadSide(); loadSpaces() })
     realtime.on('open', () => {
       // 重连后刷新，避免断线期间漏掉的变化
       for (const sid of loadedSpaces) loadTree(sid, true)

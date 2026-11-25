@@ -61,8 +61,8 @@ func (d *Dir) Path(parts ...string) string {
 	return filepath.Join(append([]string{d.Root}, parts...)...)
 }
 
-func (d *Dir) InstancePath() string { return d.Path("lemon-note.json") }
-func (d *Dir) ManifestPath() string { return d.Path("MANIFEST") }
+func (d *Dir) InstancePath() string  { return d.Path("lemon-note.json") }
+func (d *Dir) ManifestPath() string  { return d.Path("MANIFEST") }
 func (d *Dir) SecretKeyPath() string { return d.Path("config", "secret.key") }
 func (d *Dir) JournalDir() string    { return d.Path("journal") }
 func (d *Dir) SnapshotDir() string   { return d.Path("snapshots") }

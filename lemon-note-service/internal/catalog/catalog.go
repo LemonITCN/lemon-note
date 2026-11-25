@@ -44,15 +44,15 @@ type UserMeta struct {
 
 // Catalog 是内存索引。
 type Catalog struct {
-	mu       sync.RWMutex
-	pages    map[string]*PageMeta
-	children map[string]map[string]struct{} // parentKey → 子页面 id
-	spaces   map[string]*model.Space
-	members  map[string]map[string]string // spaceID → userID → role
+	mu         sync.RWMutex
+	pages      map[string]*PageMeta
+	children   map[string]map[string]struct{} // parentKey → 子页面 id
+	spaces     map[string]*model.Space
+	members    map[string]map[string]string // spaceID → userID → role
 	memberRecs map[string]model.SpaceMember // 成员记录 id → 记录
-	shares   map[string]*model.PageShare  // shareID → share
-	byPage   map[string]map[string]struct{}
-	users    map[string]*UserMeta
+	shares     map[string]*model.PageShare  // shareID → share
+	byPage     map[string]map[string]struct{}
+	users      map[string]*UserMeta
 }
 
 func parentKey(spaceID, parentID string) string {

@@ -42,12 +42,12 @@ func (c *Conversation) encode() {
 
 // Message 是解析后的消息。
 type Message struct {
-	ID        string       `json:"id"`
-	Seq       int64        `json:"seq"`
-	Role      string       `json:"role"`
-	Parts     []StoredPart `json:"parts"`
+	ID        string          `json:"id"`
+	Seq       int64           `json:"seq"`
+	Role      string          `json:"role"`
+	Parts     []StoredPart    `json:"parts"`
 	Meta      json.RawMessage `json:"meta,omitempty"`
-	CreatedAt int64        `json:"created_at"`
+	CreatedAt int64           `json:"created_at"`
 }
 
 var ErrNoConv = errors.New("会话不存在")

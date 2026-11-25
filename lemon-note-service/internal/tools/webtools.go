@@ -81,7 +81,7 @@ func init() {
 			var text string
 			switch {
 			case strings.Contains(ct, "html"):
-				md, err := htmltomd.ConvertString(stripNoise(string(body)), )
+				md, err := htmltomd.ConvertString(stripNoise(string(body)))
 				if err != nil {
 					return nil, fail("网页转换失败：%v", err)
 				}
