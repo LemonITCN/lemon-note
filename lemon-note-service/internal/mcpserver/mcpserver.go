@@ -18,7 +18,7 @@ import (
 
 const instructions = `Lemon Note 是用户的私有笔记系统（对标 Notion）。用这些工具查找、阅读、整理和修改用户的笔记：
 先用 search / list_pages 找到页面，用 read_page 读取（修改前必须先读），用 edit_page 做精确修改、write_page 大段写入、create_pages 新建。
-页面正文是增强 Markdown（标准 Markdown 加 <callout>、<details>、<columns>、mermaid 等扩展，read_page 的输出就是这种格式）。
+页面正文是增强 Markdown（标准 Markdown 加 <callout>、<details>、<columns>、mermaid 等扩展，read_page 的输出就是这种格式）。白板用 whiteboard_read / whiteboard_edit 读写，附件用 read_file 读取，评论用 list_comments / add_comment / resolve_comment。
 修改会实时出现在用户界面上，修改前的内容自动保存在页面历史里。`
 
 // Auth 解析请求身份（由 web 层实现：个人访问令牌或 OAuth 令牌）。
