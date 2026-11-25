@@ -87,6 +87,7 @@ export const icons: Record<string, string> = {
   download: '<path d="M12 4.5v11M7.5 11l4.5 4.5 4.5-4.5M4.5 15v3.5c0 .6.4 1 1 1h13c.6 0 1-.4 1-1V15"/>',
   eye: '<path d="M2.8 12c2-4 5.2-6.3 9.2-6.3s7.2 2.3 9.2 6.3c-2 4-5.2 6.3-9.2 6.3S4.8 16 2.8 12z"/><circle cx="12" cy="12" r="2.8"/>',
   'eye-off': '<path d="M4 4l16 16M9.8 6c.7-.2 1.4-.3 2.2-.3 4 0 7.2 2.3 9.2 6.3-.7 1.4-1.6 2.6-2.6 3.6M15 17.9c-.9.3-1.9.4-3 .4-4 0-7.2-2.3-9.2-6.3 1-1.9 2.2-3.4 3.7-4.5"/>',
+  edit: '<path d="M14.5 5.5l4 4M5 19l1-4.2L15.6 5.2a1.6 1.6 0 0 1 2.3 0l.9.9a1.6 1.6 0 0 1 0 2.3L9.2 18 5 19z"/>',
   key: '<circle cx="8" cy="15" r="3.8"/><path d="M10.8 12.3L19 4.5M15.5 8l2.5 2.5M17.5 6l2 2"/>',
   shield: '<path d="M12 3.5l7 2.8v5.5c0 4.3-2.9 7.6-7 8.7-4.1-1.1-7-4.4-7-8.7V6.3z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
   server: '<rect x="4" y="4.5" width="16" height="6.5" rx="1.5"/><rect x="4" y="13" width="16" height="6.5" rx="1.5"/><circle cx="7.5" cy="7.8" r=".9" fill="currentColor" stroke="none"/><circle cx="7.5" cy="16.3" r=".9" fill="currentColor" stroke="none"/>',

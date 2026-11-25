@@ -9,7 +9,7 @@ import { userName } from '@/lib/users'
 const { t, te } = useI18n()
 const logs = ref<any[]>([])
 onMounted(async () => { try { logs.value = (await api.get('/api/admin/audit?limit=300')).logs } catch {} })
-const label = (a: string) => (te('audit.' + a) ? t('audit.' + a) : a)
+const label = (a: string) => { const k = 'audit.' + a.replace(/\./g, '_'); return te(k) ? t(k) : a }
 </script>
 
 <template>
