@@ -174,6 +174,9 @@ func (c *conv) extractTrailers(items []Node, allowed bool) ([]Node, []attrKV, []
 		raws = append(raws, tk.raw)
 		if n := len(out); n > 0 && out[n-1].Type == tText {
 			out[n-1].Text = strings.TrimRight(out[n-1].Text, " \t")
+		} else if n > 0 && out[n-1].Type == tHardBreak {
+			// 尾注单独占一行：去掉它前面的换行
+			out = out[:n-1]
 		}
 	}
 	return out, attrs, raws

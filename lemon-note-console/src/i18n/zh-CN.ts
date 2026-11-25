@@ -53,6 +53,15 @@ export default {
     tokenCreated: '令牌只显示这一次，请立即复制保存', newToken: '新建令牌', mcpTip: '在 Claude Code、Cursor 等智能体里添加 MCP 服务器时使用访问令牌。',
     allSpaces: '全部空间',
   },
+  agent: {
+    history: '历史对话', newChat: '新对话', placeholder: '问问笔记，或让我帮你整理和修改…（Enter 发送，Shift+Enter 换行）', send: '发送', stop: '停止',
+    thinking: '思考过程', working: '正在处理', compacting: '正在压缩上下文', plan: '计划', welcome: '可以把左侧的页面拖到这里，或在正文里选中一段「添加到聊天」，一起看、一起改。',
+    noProvider: '还没有配置模型供应商', approveTitle: '需要你确认', deny: '拒绝', allow: '允许', alwaysAllow: '本对话总是允许', denyReason: '拒绝原因（可选）',
+    otherAnswer: '其他回答（可选）', submit: '提交', revert: '撤销本轮修改', changedPages: '本轮修改了 {n} 个页面', reverted: '已撤销，恢复了 {n} 个页面',
+    modePlan: '只读规划', modeAskAll: '每次修改确认', modeAskDestructive: '删除时确认', modeAuto: '全自动', effort: '思考', model: '模型',
+    effortNone: '不思考', effortMin: '极少', effortLow: '低', effortMid: '中', effortHigh: '高', effortXHigh: '很高', effortMax: '最高',
+    contextTip: '上下文已用 {used} / 预算 {budget} token，接近上限时会自动压缩',
+  },
   errors: {
     network: '无法连接服务器', unauthorized: '请先登录', forbidden: '没有权限', not_found: '内容不存在', csrf: '请求校验失败，请刷新页面',
     too_many_attempts: '尝试次数过多，请稍后再试', bad_credentials: '用户名或口令不正确', internal: '服务器内部错误', page_locked: '页面已锁定',

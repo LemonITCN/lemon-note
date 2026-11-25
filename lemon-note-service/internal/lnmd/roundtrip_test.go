@@ -384,7 +384,8 @@ func TestBlockFuzz(t *testing.T) {
 	var gen func(depth int) Node
 	leaf := func() Node {
 		s := texts[rng.Intn(len(texts))]
-		switch rng.Intn(8) {
+		ms := []Mark{mk(mBold), mk(mItalic), mk(mCode), mk(mLink, "href", "u"), mk(mUnderline)}
+		switch rng.Intn(20) {
 		case 0:
 			return nd(tHeading, map[string]any{"level": rng.Intn(3) + 1}, txt(s))
 		case 1:
@@ -395,6 +396,27 @@ func TestBlockFuzz(t *testing.T) {
 			return nd(tMathBlock, map[string]any{"latex": s})
 		case 4:
 			return nd(tHorizontalRule, nil)
+		case 5:
+			return nd(tTable, nil, nd(tTableRow, nil, nd(tTableHeader, nil, para(txt(s))), nd(tTableHeader, nil, para(txt("h")))),
+				nd(tTableRow, nil, nd(tTableCell, nil, para(txt(s, ms[rng.Intn(len(ms))]))), nd(tTableCell, nil, para())))
+		case 6:
+			return nd(tMermaid, map[string]any{"code": s})
+		case 7:
+			return nd(tMindmap, map[string]any{"data": map[string]any{"root": map[string]any{"text": s, "children": []any{map[string]any{"text": "子"}}}}})
+		case 8:
+			return nd(tChildPage, map[string]any{"pageId": []string{"p1", "p2", "zz"}[rng.Intn(3)]})
+		case 9:
+			return nd(tSyncedBlock, map[string]any{"sourceId": "src"})
+		case 10:
+			return nd(tFileBlock, map[string]any{"src": "lemon://file/1", "name": s})
+		case 11:
+			return nd(tWhiteboard, map[string]any{"id": "w", "title": s})
+		case 12:
+			return nd(tParagraph, map[string]any{"color": "red"}, txt(s))
+		case 13:
+			return para(txt(s), txt(s+"粗", ms[rng.Intn(len(ms))]), txt("尾"))
+		case 14:
+			return nd(tTOC, nil)
 		default:
 			return para(txt(s))
 		}

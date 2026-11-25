@@ -53,6 +53,15 @@ export default {
     tokenCreated: 'This token is shown only once. Copy it now', newToken: 'New token', mcpTip: 'Use an access token when adding this MCP server to Claude Code, Cursor and other agents.',
     allSpaces: 'All spaces',
   },
+  agent: {
+    history: 'History', newChat: 'New chat', placeholder: 'Ask about your notes, or let me organize and edit them… (Enter to send, Shift+Enter for newline)', send: 'Send', stop: 'Stop',
+    thinking: 'Thinking', working: 'Working', compacting: 'Compacting context', plan: 'Plan', welcome: 'Drag pages from the sidebar here, or select text and choose "Add to chat" to work on it together.',
+    noProvider: 'No model provider configured yet', approveTitle: 'Needs your approval', deny: 'Deny', allow: 'Allow', alwaysAllow: 'Always allow in this chat', denyReason: 'Reason (optional)',
+    otherAnswer: 'Other answer (optional)', submit: 'Submit', revert: 'Undo these changes', changedPages: 'Changed {n} pages', reverted: 'Reverted {n} pages',
+    modePlan: 'Read-only plan', modeAskAll: 'Ask before edits', modeAskDestructive: 'Ask before deletes', modeAuto: 'Auto', effort: 'Thinking', model: 'Model',
+    effortNone: 'Off', effortMin: 'Minimal', effortLow: 'Low', effortMid: 'Medium', effortHigh: 'High', effortXHigh: 'Very high', effortMax: 'Max',
+    contextTip: 'Context used {used} / budget {budget} tokens; compacts automatically near the limit',
+  },
   errors: {
     network: 'Cannot reach the server', unauthorized: 'Please sign in', forbidden: 'Permission denied', not_found: 'Not found', csrf: 'Request check failed. Please reload',
     too_many_attempts: 'Too many attempts. Try again later', bad_credentials: 'Incorrect username or password', internal: 'Internal server error', page_locked: 'Page is locked',

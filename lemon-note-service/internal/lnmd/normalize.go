@@ -347,6 +347,13 @@ func escapePrivate(s string) string {
 			i += n
 			continue
 		}
+		if c == '$' {
+			if _, n, ok := scanMath(s[i:]); ok {
+				b.WriteString(s[i : i+n])
+				i += n
+				continue
+			}
+		}
 		if c >= 0x80 {
 			r, size := utf8.DecodeRuneInString(s[i:])
 			if isPrivateTok(r) {
@@ -406,6 +413,14 @@ func (nz *normResult) scanPieces(rest string) ([]rpiece, bool) {
 			} else {
 				cur.WriteString(rest[i : i+n])
 				i += n
+			}
+		case c == '$':
+			if _, n, ok := scanMath(rest[i:]); ok {
+				cur.WriteString(rest[i : i+n])
+				i += n
+			} else {
+				cur.WriteByte(c)
+				i++
 			}
 		case c == '<':
 			if t, end, ok := parseTagAt(rest, i); ok && blockTagNames[t.name] {

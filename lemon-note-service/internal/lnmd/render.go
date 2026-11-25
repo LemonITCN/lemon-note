@@ -292,7 +292,7 @@ func (r *renderer) list(n Node) string {
 	}
 	// 只有标记的空列表项后面若紧跟空行（列表末项、下一项以标签开头时规范化会插空行），
 	// goldmark 会连外层列表项一起结束，所以这些位置改写成 <empty-block/>。
-	for i := range lines {
+	for i := len(lines) - 1; i >= 0; i-- {
 		if !bareItem(lines[i]) {
 			continue
 		}

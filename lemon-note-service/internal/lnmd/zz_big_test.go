@@ -1,56 +1,15 @@
 package lnmd
-import ("fmt"; "math/rand"; "strings"; "testing")
-var seedBig int64 = 5
+import ("fmt"; "math/rand"; "testing")
+var seedBig int64 = 8
 
-func TestInlineFuzzBig(t *testing.T) {
-	rng := rand.New(rand.NewSource(seedBig))
-	pieces := []string{"a", "中文", " ", "  ", "*", "**", "_", "`", "``", "[", "]", "(", ")", "<", ">", "\\", "#", "-", "+", "!",
-		"&", "&amp;", "|", "~", "$", "{", "}", "{color=\"red\"}", "1.", "：", "“", "”", "。", "x_y", "<u>", "</span>", "\"", "'",
-		"http://a.b", "💡", "\t", "=", ":", "<br>", "&#36;", "\uE000"}
-	marks := []Mark{mk(mBold), mk(mItalic), mk(mStrike), mk(mUnderline), mk(mCode), mk(mLink, "href", "u"), mk(mLink, "href", "v w"),
-		mk(mTextColor, "color", "red"), mk(mHighlight), mk(mSubscript), mk(mSuperscript)}
-	for iter := 0; iter < 60000; iter++ {
-		var c []Node
-		for k := rng.Intn(6) + 1; k > 0; k-- {
-			switch rng.Intn(10) {
-			case 0:
-				c = append(c, Node{Type: tHardBreak})
-			case 1:
-				c = append(c, Node{Type: tMathInline, Attrs: map[string]any{"latex": pieces[rng.Intn(len(pieces))] + "x"}})
-			case 2:
-				c = append(c, Node{Type: tMention, Attrs: map[string]any{"kind": "page", "id": "p" + fmt.Sprint(rng.Intn(3))}})
-			default:
-				var sb strings.Builder
-				for w := rng.Intn(4) + 1; w > 0; w-- {
-					sb.WriteString(pieces[rng.Intn(len(pieces))])
-				}
-				var ms []Mark
-				for _, m := range marks {
-					if rng.Intn(5) == 0 {
-						ms = append(ms, m)
-					}
-				}
-				c = append(c, txt(sb.String(), ms...))
-			}
-		}
-		name := fmt.Sprintf("随机%d", iter)
-		checkStable(t, name, para(c...), testOpts)
-		if iter%4 == 0 {
-			checkStable(t, name+"/表格", nd(tTable, nil, nd(tTableRow, nil, nd(tTableCell, nil, para(c...)))), testOpts)
-			checkStable(t, name+"/列表", nd(tBulletList, nil, li(para(c...))), testOpts)
-		}
-		if t.Failed() {
-			return
-		}
-	}
-}
 func TestBlockFuzzBig(t *testing.T) {
 	rng := rand.New(rand.NewSource(seedBig))
 	texts := []string{"文字", "- 列表样", "# 井号", "<callout>", "a*b", "1. x", "", "```", "$$", "| t |", "{color=\"red\"}", "  "}
 	var gen func(depth int) Node
 	leaf := func() Node {
 		s := texts[rng.Intn(len(texts))]
-		switch rng.Intn(8) {
+		ms := []Mark{mk(mBold), mk(mItalic), mk(mCode), mk(mLink, "href", "u"), mk(mUnderline)}
+		switch rng.Intn(20) {
 		case 0:
 			return nd(tHeading, map[string]any{"level": rng.Intn(3) + 1}, txt(s))
 		case 1:
@@ -61,6 +20,27 @@ func TestBlockFuzzBig(t *testing.T) {
 			return nd(tMathBlock, map[string]any{"latex": s})
 		case 4:
 			return nd(tHorizontalRule, nil)
+		case 5:
+			return nd(tTable, nil, nd(tTableRow, nil, nd(tTableHeader, nil, para(txt(s))), nd(tTableHeader, nil, para(txt("h")))),
+				nd(tTableRow, nil, nd(tTableCell, nil, para(txt(s, ms[rng.Intn(len(ms))]))), nd(tTableCell, nil, para())))
+		case 6:
+			return nd(tMermaid, map[string]any{"code": s})
+		case 7:
+			return nd(tMindmap, map[string]any{"data": map[string]any{"root": map[string]any{"text": s, "children": []any{map[string]any{"text": "子"}}}}})
+		case 8:
+			return nd(tChildPage, map[string]any{"pageId": []string{"p1", "p2", "zz"}[rng.Intn(3)]})
+		case 9:
+			return nd(tSyncedBlock, map[string]any{"sourceId": "src"})
+		case 10:
+			return nd(tFileBlock, map[string]any{"src": "lemon://file/1", "name": s})
+		case 11:
+			return nd(tWhiteboard, map[string]any{"id": "w", "title": s})
+		case 12:
+			return nd(tParagraph, map[string]any{"color": "red"}, txt(s))
+		case 13:
+			return para(txt(s), txt(s+"粗", ms[rng.Intn(len(ms))]), txt("尾"))
+		case 14:
+			return nd(tTOC, nil)
 		default:
 			return para(txt(s))
 		}

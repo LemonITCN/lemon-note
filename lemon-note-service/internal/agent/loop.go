@@ -209,10 +209,12 @@ func (s *Service) execute(run *Run, user *model.User) {
 			return
 		}
 		results := s.runTools(ctx, run, env, conv, calls, toolList)
-		if _, err := s.appendMessage(context.WithoutCancel(ctx), conv, "tool", results, nil); err != nil {
+		tmsg, err := s.appendMessage(context.WithoutCancel(ctx), conv, "tool", results, nil)
+		if err != nil {
 			status, errMsg = "error", err.Error()
 			return
 		}
+		run.emit("message_saved", map[string]any{"id": tmsg.ID, "seq": tmsg.Seq, "role": "tool"})
 		_ = s.saveConv(context.WithoutCancel(ctx), conv)
 		if ctx.Err() != nil {
 			return

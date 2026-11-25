@@ -13,12 +13,16 @@ import { realtime } from '@/lib/realtime'
 import { startResize } from '@/lib/resize'
 import { useToast } from '@/stores/toast'
 import { errorText } from '@/i18n'
+import { installClientTools } from '@/lib/clientTools'
+import { useRouter } from 'vue-router'
 
 const { t } = useI18n()
 const ui = useUI()
 const ws = useWorkspace()
 const toast = useToast()
 const ready = ref(false)
+const router = useRouter()
+const offClient = installClientTools(router)
 
 function onKey(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey
@@ -35,6 +39,7 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => {
   realtime.stop()
+  offClient()
   window.removeEventListener('keydown', onKey)
 })
 </script>

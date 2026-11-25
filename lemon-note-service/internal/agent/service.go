@@ -156,6 +156,9 @@ type Run struct {
 	steer   []string
 	started time.Time
 
+	stepStart   int                       // 当前这一步 assistant_start 事件的序号（断线续传用）
+	pendingData map[string]map[string]any // 等待用户回应的审批 / 提问
+
 	checkpoints map[string]string // pageID → 修改前的版本 id
 	created     []string
 	trashed     []string
@@ -174,6 +177,9 @@ func (r *Run) emit(typ string, data any) {
 	r.mu.Lock()
 	ev := Event{Seq: len(r.events) + 1, Type: typ, Data: data}
 	r.events = append(r.events, ev)
+	if typ == "assistant_start" {
+		r.stepStart = ev.Seq
+	}
 	for ch := range r.subs {
 		select {
 		case ch <- struct{}{}:
@@ -221,6 +227,21 @@ func (r *Run) State() string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.state
+}
+
+// Resume 返回断线续传信息：从哪个序号之后重放、待处理的交互。
+func (r *Run) Resume() (int, []map[string]any) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	from := len(r.events)
+	if r.stepStart > 0 {
+		from = r.stepStart - 1
+	}
+	var pend []map[string]any
+	for _, d := range r.pendingData {
+		pend = append(pend, d)
+	}
+	return from, pend
 }
 
 // GetRun 取运行（只能取自己的）。
@@ -351,15 +372,21 @@ func (s *Service) Respond(userID, runID, interactionID string, rep Reply) error 
 func (r *Run) wait(ctx context.Context, kind string, data map[string]any) (Reply, error) {
 	id := ids.New()
 	ch := make(chan Reply, 1)
+	data["id"] = id
+	data["kind"] = kind
 	r.mu.Lock()
 	r.pending[id] = ch
+	if r.pendingData == nil {
+		r.pendingData = map[string]map[string]any{}
+	}
+	r.pendingData[id] = data
 	r.state = "waiting"
 	r.mu.Unlock()
-	data["id"] = id
 	r.emit(kind, data)
 	defer func() {
 		r.mu.Lock()
 		delete(r.pending, id)
+		delete(r.pendingData, id)
 		if r.state == "waiting" && len(r.pending) == 0 {
 			r.state = "running"
 		}

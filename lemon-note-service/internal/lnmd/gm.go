@@ -200,8 +200,19 @@ func (mathParser) Trigger() []byte { return []byte{'$'} }
 
 func (mathParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
-	if len(line) < 3 || line[0] != '$' {
+	latex, n, ok := scanMath(line)
+	if !ok {
 		return nil
+	}
+	block.Advance(n)
+	return &mathNode{Latex: latex}
+}
+
+// scanMath 在 line 开头（line[0]=='$'）识别行内公式，返回公式内容与消耗的字节数。
+// 规范化预处理用同一函数跳过公式，保证两边对「哪里是公式」的判断一致。
+func scanMath[T ~string | ~[]byte](line T) (string, int, bool) {
+	if len(line) < 3 || line[0] != '$' {
+		return "", 0, false
 	}
 	if line[1] == '$' {
 		for j := 2; j+1 < len(line); j++ {
@@ -215,16 +226,15 @@ func (mathParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) a
 			if line[j] == '$' && line[j+1] == '$' {
 				latex := trimSpaceTab(string(line[2:j]))
 				if latex == "" {
-					return nil
+					return "", 0, false
 				}
-				block.Advance(j + 2)
-				return &mathNode{Latex: latex}
+				return latex, j + 2, true
 			}
 		}
-		return nil
+		return "", 0, false
 	}
 	if line[1] == ' ' || line[1] == '\t' || line[1] == '\n' {
-		return nil
+		return "", 0, false
 	}
 	for j := 1; j < len(line); j++ {
 		c := line[j]
@@ -240,16 +250,14 @@ func (mathParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) a
 		}
 		if line[j-1] == ' ' || line[j-1] == '\t' {
 			// 前面是空白的 $ 更像下一个公式的开头或金额，当前这个 $ 按普通文字处理
-			return nil
+			return "", 0, false
 		}
 		if j+1 < len(line) && isASCIIDigit(line[j+1]) {
 			continue
 		}
-		latex := string(line[1:j])
-		block.Advance(j + 1)
-		return &mathNode{Latex: latex}
+		return string(line[1:j]), j + 1, true
 	}
-	return nil
+	return "", 0, false
 }
 
 func trimSpaceTab(s string) string {

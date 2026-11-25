@@ -123,8 +123,9 @@ func (s *Service) hGet(w http.ResponseWriter, r *http.Request) error {
 	_ = s.st.Select(r.Context(), &ckpts, "SELECT * FROM agent_checkpoints WHERE conversation_id = ? ORDER BY created_at", c.ID)
 	out := map[string]any{"conversation": c, "messages": msgs, "todos": c.St.Todos, "context": c.St.LastContext, "summary": c.St.Summary, "checkpoints": ckpts}
 	if run := s.ActiveRun(c.ID); run != nil {
-		evs, st := run.Since(0)
-		out["active_run"] = map[string]any{"id": run.ID, "state": st, "events": len(evs)}
+		_, st := run.Since(0)
+		from, pend := run.Resume()
+		out["active_run"] = map[string]any{"id": run.ID, "state": st, "resume_from": from, "pending": pend}
 	}
 	return web.OK(w, out)
 }
