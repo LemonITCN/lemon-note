@@ -29,7 +29,7 @@
 .ln-editor .has-bg { border-radius: var(--radius-s); padding-left: 6px; padding-right: 6px; }
 .ln-editor .is-empty::before, .ln-editor .is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--text-3); float: left; height: 0; pointer-events: none; }
 .ln-editor .ProseMirror-selectednode { outline: none; }
-.ln-editor .ln-comment { background: rgba(255, 212, 0, .14); border-bottom: 2px solid rgba(255, 212, 0, .6); }
+/* 批注高亮由评论侧栏按「未解决的线程」动态生成，已解决、已删除的标记不显示 */
 
 /* 表格 */
 .ln-editor table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 8px 0; overflow: hidden; }

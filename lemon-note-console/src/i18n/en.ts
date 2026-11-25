@@ -87,6 +87,11 @@ export default {
     notFound: 'This link does not exist or has expired', needPassword: 'This page is password protected', view: 'View', badPassword: 'Wrong password', tooMany: 'Too many attempts, try again later',
     noAccess: 'No access', noAccessOrDeleted: 'No access or deleted', sharedVia: 'Shared via {site}',
   },
+  comments: {
+    title: 'Comments', add: 'Comment', placeholder: 'Write a comment… (Cmd/Ctrl + Enter to send)', send: 'Send', reply: 'Reply…', addPage: 'Comment on this page…',
+    empty: 'No comments yet', pageComment: 'Page discussion', resolve: 'Resolve', reopen: 'Reopen', resolvedBy: 'Resolved by {name}',
+    showResolved: 'Resolved', edited: 'edited', deleteTitle: 'Delete comment',
+  },
   roles: { owner: 'Owner', admin: 'Admin', editor: 'Can edit', commenter: 'Can comment', viewer: 'Can view' },
   audit: {
     share_user_set: 'Shared with user', share_user_removed: 'Removed share', share_public_set: 'Updated public link', share_public_removed: 'Unpublished', share_public_rotated: 'Reset public link',

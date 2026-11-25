@@ -18,7 +18,7 @@ import { realtime } from '@/lib/realtime'
 import '@/styles/editor.css'
 
 const props = defineProps<{ pageId: string; spaceId: string; blocks: BlockDoc[]; editable: boolean; pageTitle: string }>()
-const emit = defineEmits<{ state: [s: SaveState]; createSubpage: []; createDatabase: []; ready: [e: Editor] }>()
+const emit = defineEmits<{ state: [s: SaveState]; createSubpage: []; createDatabase: []; ready: [e: Editor]; comment: [d: { from: number; to: number; quote: string; blockId: string }]; openThread: [id: string] }>()
 const { t } = useI18n()
 const toast = useToast()
 const editor = shallowRef<Editor>()
@@ -45,6 +45,7 @@ function create() {
   e.on('update', ({ transaction }) => { if (!transaction.getMeta(REMOTE_META)) sync?.schedule() })
   e.on('lnCreateSubpage' as any, () => emit('createSubpage'))
   e.on('lnCreateDatabase' as any, () => emit('createDatabase'))
+  e.on('lnComment' as any, (d: any) => emit('comment', d))
   editor.value = e
   emit('ready', e)
 }
@@ -84,7 +85,43 @@ function addBelow() {
   e.chain().insertContentAt(at, { type: 'paragraph', content: [{ type: 'text', text: '/' }] }).setTextSelection(at + 2).focus().run()
 }
 
-defineExpose({ flush: () => sync?.flush(), editor })
+/** 给新建的批注线程打上标记；原文已经变了就不打（线程仍按原文保留）。 */
+function applyComment(d: { from: number; to: number; quote: string }, threadId: string): boolean {
+  const e = editor.value
+  if (!e || !props.editable || d.to > e.state.doc.content.size) return false
+  if (e.state.doc.textBetween(d.from, d.to, ' ') !== d.quote) return false
+  e.chain().setTextSelection({ from: d.from, to: d.to }).setMark('comment', { threadId }).setTextSelection(d.to).run()
+  return true
+}
+
+/** 线程删除后去掉正文里对应的标记。 */
+function removeComment(threadId: string) {
+  const e = editor.value
+  if (!e || !props.editable) return
+  const type = e.schema.marks.comment
+  if (!type) return
+  const tr = e.state.tr
+  e.state.doc.descendants((node, pos) => {
+    if (!node.isText) return
+    const m = node.marks.find((x) => x.type === type && x.attrs.threadId === threadId)
+    if (m) tr.removeMark(pos, pos + node.nodeSize, m)
+  })
+  if (tr.docChanged) e.view.dispatch(tr)
+}
+
+/** 滚到线程的批注位置。 */
+function revealComment(threadId: string) {
+  const el = editor.value?.view.dom.querySelector(`.ln-comment[data-thread="${CSS.escape(threadId)}"]`)
+  el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+
+function onClick(ev: MouseEvent) {
+  const el = (ev.target as HTMLElement | null)?.closest?.('.ln-comment') as HTMLElement | null
+  const id = el?.getAttribute('data-thread')
+  if (id) emit('openThread', id)
+}
+
+defineExpose({ flush: () => sync?.flush(), editor, applyComment, removeComment, revealComment })
 </script>
 
 <template>
@@ -97,7 +134,7 @@ defineExpose({ flush: () => sync?.flush(), editor })
         </BlockMenu>
       </div>
     </DragHandle>
-    <EditorContent :editor="editor" />
+    <EditorContent :editor="editor" @click="onClick" />
     <FormatBar v-if="editable" :editor="editor" :page-id="pageId" :page-title="pageTitle" />
     <FloatingList :open="slashState.open" :items="slashState.items" :index="slashState.index" :rect="slashState.rect" :empty="t('editor.noResults')"
       @hover="(i: number) => (slashState.index = i)" @pick="(i: number) => slashState.command?.(slashState.items[i])" />

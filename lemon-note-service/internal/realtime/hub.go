@@ -62,6 +62,7 @@ type blockEvent struct {
 func (h *Hub) onCommit(c store.Commit) {
 	blocksByPage := map[string][]blockEvent{}
 	dbChanged := map[string]bool{}
+	commentPages := map[string]bool{}
 	var pageIDs []string
 	revs := map[string]int64{}
 	for _, op := range c.Ops {
@@ -83,6 +84,10 @@ func (h *Hub) onCommit(c store.Commit) {
 			ev.Position, _ = op.Row["position"].(string)
 			ev.Version = toInt(op.Row["version"])
 			blocksByPage[pid] = append(blocksByPage[pid], ev)
+		case "comments", "comment_threads":
+			if pid, _ := op.Row["page_id"].(string); pid != "" { // 删除时 Row 是 DeleteHint 带的提示字段
+				commentPages[pid] = true
+			}
 		case "databases":
 			dbChanged[op.ID] = true
 		case "db_views":
@@ -98,6 +103,12 @@ func (h *Hub) onCommit(c store.Commit) {
 	}
 	for pid, evs := range blocksByPage {
 		msg, _ := json.Marshal(Message{Type: "blocks", Data: map[string]any{"page_id": pid, "rev": revs[pid], "ops": evs, "origin": c.Origin, "actor": c.Actor}})
+		h.broadcast(func(conn *Conn) bool {
+			return conn.ID != c.Origin && conn.subscribed("page:"+pid) && h.cat.CanRead(conn.UserID, pid)
+		}, msg)
+	}
+	for pid := range commentPages {
+		msg, _ := json.Marshal(Message{Type: "comments", Data: map[string]any{"page_id": pid, "origin": c.Origin}})
 		h.broadcast(func(conn *Conn) bool {
 			return conn.ID != c.Origin && conn.subscribed("page:"+pid) && h.cat.CanRead(conn.UserID, pid)
 		}, msg)

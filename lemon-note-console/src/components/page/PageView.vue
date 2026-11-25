@@ -12,6 +12,7 @@ import IconPicker from './IconPicker.vue'
 import PageCover from './PageCover.vue'
 import HistoryPanel from './HistoryPanel.vue'
 import ShareDialog from './ShareDialog.vue'
+import CommentsPanel, { type CommentDraft } from './CommentsPanel.vue'
 import IconBtn from '@/components/ui/IconBtn.vue'
 import Btn from '@/components/ui/Btn.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -39,6 +40,9 @@ const title = ref('')
 const saveState = ref<SaveState>('saved')
 const historyOpen = ref(false)
 const shareOpen = ref(false)
+const commentsOpen = ref(false)
+const commentDraft = ref<CommentDraft | null>(null)
+const commentsRef = ref<InstanceType<typeof CommentsPanel>>()
 const titleEl = ref<HTMLTextAreaElement>()
 const editorRef = ref<InstanceType<typeof Editor>>()
 let titleTimer: number | undefined
@@ -200,6 +204,7 @@ const saveLabel = computed(() => ({ saved: '', saving: t('common.loading'), erro
       <span v-if="page" class="edited">{{ t('page.lastEdited') }} {{ formatRelative(page.updated_at) }}</span>
       <template v-if="page">
         <Btn v-if="!ui.isMobile" size="sm" variant="ghost" @click="shareOpen = true">{{ t('page.share') }}</Btn>
+        <span class="cbtn"><IconBtn icon="comment" :label="t('comments.title')" :active="commentsOpen" @click="commentsOpen = !commentsOpen" /><span v-if="commentsRef?.count" class="badge">{{ commentsRef.count }}</span></span>
         <IconBtn :icon="ws.isFavorite(id) ? 'star-filled' : 'star'" :label="ws.isFavorite(id) ? t('page.unfavorite') : t('page.favorite')" :class="{ fav: ws.isFavorite(id) }" @click="ws.setFavorite(id, !ws.isFavorite(id))" />
         <IconBtn icon="history" :label="t('page.history')" @click="historyOpen = true" />
         <Menu :items="moreMenu" align="end" :width="230"><IconBtn icon="more" :label="t('common.more')" /></Menu>
@@ -210,6 +215,7 @@ const saveLabel = computed(() => ({ saved: '', saving: t('common.loading'), erro
       <Btn size="sm" @click="restore">{{ t('page.restore') }}</Btn>
       <Btn size="sm" variant="danger" @click="purge">{{ t('page.deleteForever') }}</Btn>
     </div>
+    <div class="body">
     <div class="scroll">
       <div v-if="error" class="err">{{ error }}</div>
       <template v-else-if="data && page">
@@ -228,10 +234,14 @@ const saveLabel = computed(() => ({ saved: '', saving: t('common.loading'), erro
           <RowProps v-if="page.database_id" :database-id="page.database_id" :row-id="id" :editable="canEdit" />
           <DatabaseView v-if="isDb" :database-id="id" :editable="canEdit" full />
           <Editor v-else ref="editorRef" :key="id" :page-id="id" :space-id="page.space_id" :blocks="data.blocks" :editable="canEdit" :page-title="title"
-            @state="(s: SaveState) => (saveState = s)" @create-subpage="createSubpage" @create-database="createDatabase" />
+            @state="(s: SaveState) => (saveState = s)" @create-subpage="createSubpage" @create-database="createDatabase"
+            @comment="(d) => (commentDraft = d)" @open-thread="(tid: string) => commentsRef?.focusThread(tid)" />
         </div>
       </template>
       <div v-else class="loading" />
+    </div>
+    <CommentsPanel v-if="page" ref="commentsRef" :key="id" v-model:open="commentsOpen" v-model:draft="commentDraft" :page-id="id"
+      @created="(d: CommentDraft, tid: string) => editorRef?.applyComment(d, tid)" @deleted="(tid: string) => editorRef?.removeComment(tid)" @focus="(tid: string) => editorRef?.revealComment(tid)" />
     </div>
     <HistoryPanel v-if="page" v-model:open="historyOpen" :page-id="id" :editable="canEdit" @restored="data = null; load()" />
     <ShareDialog v-if="page" v-model:open="shareOpen" :page-id="id" :page-title="title" :role="data?.role || ''" />
@@ -250,7 +260,10 @@ a.crumb:hover { background: var(--bg-hover); color: var(--text); }
 .save.error, .save.offline { color: var(--danger); }
 .fav { color: var(--c-yellow) !important; }
 .trash-banner { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--danger); color: #fff; padding: 6px 12px; font-size: 13.5px; }
-.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.body { flex: 1; display: flex; min-height: 0; }
+.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; min-width: 0; }
+.cbtn { position: relative; display: inline-flex; }
+.badge { position: absolute; top: 1px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: #fff; font-size: 10px; line-height: 14px; text-align: center; pointer-events: none; }
 .doc { max-width: 760px; margin: 0 auto; padding: 0 56px; }
 .doc.wide { max-width: none; padding: 0 72px; }
 .doc.small { --content-size: 14px; }

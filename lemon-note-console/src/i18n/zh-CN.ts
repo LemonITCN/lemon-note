@@ -87,6 +87,11 @@ export default {
     notFound: '链接不存在或已失效', needPassword: '这个页面需要访问口令', view: '查看', badPassword: '口令不正确', tooMany: '尝试次数过多，请稍后再试',
     noAccess: '无权访问', noAccessOrDeleted: '无权访问或已删除', sharedVia: '通过 {site} 分享',
   },
+  comments: {
+    title: '评论', add: '评论', placeholder: '写下评论…（⌘/Ctrl + Enter 发送）', send: '发送', reply: '回复…', addPage: '对这个页面发表评论…',
+    empty: '还没有评论', pageComment: '页面讨论', resolve: '标记为已解决', reopen: '重新打开', resolvedBy: '{name} 标记为已解决',
+    showResolved: '已解决', edited: '已编辑', deleteTitle: '删除评论',
+  },
   roles: { owner: '所有者', admin: '管理员', editor: '可编辑', commenter: '可评论', viewer: '可查看' },
   audit: {
     share_user_set: '分享给用户', share_user_removed: '移除分享', share_public_set: '设置公开链接', share_public_removed: '取消公开链接', share_public_rotated: '重置公开链接',

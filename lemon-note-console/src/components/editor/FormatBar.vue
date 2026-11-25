@@ -53,6 +53,14 @@ function applyLink() {
   linkOpen.value = false
 }
 
+function comment() {
+  const { state } = props.editor
+  const { from, to } = state.selection
+  if (from === to) return
+  const top = state.doc.resolve(from).node(1)
+  props.editor.emit('lnComment' as any, { from, to, quote: state.doc.textBetween(from, to, ' '), blockId: top?.attrs?.id || '' })
+}
+
 function chat() {
   const { from, to } = e.value.state.selection
   const text = e.value.state.doc.textBetween(from, to, '\n')
@@ -65,6 +73,7 @@ function chat() {
 <template>
   <BubbleMenu :editor="editor" :should-show="shouldShow" :options="{ placement: 'top', offset: 8 }" class="fb">
     <button class="fb-btn chat" @mousedown.prevent @click="chat"><Icon name="assistant" :size="15" />{{ t('editor.addToChat') }}</button>
+    <button class="fb-icon" :title="t('comments.add')" @mousedown.prevent @click="comment"><Icon name="comment" :size="16" /></button>
     <span class="fb-sep" />
     <Menu :items="turnInto"><button class="fb-btn" @mousedown.prevent>{{ t('editor.turnInto') }}<Icon name="chevron-down" :size="13" /></button></Menu>
     <span class="fb-sep" />

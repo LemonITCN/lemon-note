@@ -34,6 +34,8 @@ type Services struct {
 	Log      *slog.Logger
 	// DB 数据库模块（可选，注册后数据库工具才可用）
 	DB any
+	// Comments 评论模块（可选）
+	Comments any
 }
 
 // ReadTracker 记录本会话读过哪些页面、读时的版本号（先读后改检查用）。
