@@ -10,3 +10,5 @@ lemon-note-service/gui/build/bin/
 .env
 .env.*
 public/excalidraw-assets/
+lemon-note-service/lemon-note
+*.exe
